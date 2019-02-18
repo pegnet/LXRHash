@@ -21,9 +21,12 @@ type Gradehash struct {
 	start         int64
 	bitsChanged   int
 	bitsDelta     int
+	diffsrc       []byte
+	difficulty    uint64
+	diffHash      []byte
 }
 
-func (g *Gradehash) AddHash(hash []byte) {
+func (g *Gradehash) AddHash(src []byte, hash []byte) {
 
 	for _, v := range hash {
 		g.bytefrequency[v]++
@@ -50,6 +53,13 @@ func (g *Gradehash) AddHash(hash []byte) {
 	}
 	g.bitsDelta += (changedhere - 128) * (changedhere - 128) * 100
 	g.last = hash
+
+	diff := difficulty(hash)
+	if g.difficulty == 0 || (diff != 0 && diff < g.difficulty) {
+		g.difficulty = diff
+		g.diffHash = hash
+		g.diffsrc = src
+	}
 
 }
 
@@ -108,8 +118,32 @@ func (g *Gradehash) Report(name string) {
 	Deltascore := g.bitsDelta / g.numhashes
 	fmt.Printf("\n%5s %12s:: avg %10.2f maxdiff %3d=%10.6f mindiff %3d=%10.6f score %20.2f bitschanged %6.2f  DeltaScore: %20d",
 		name, humanize.Comma(int64(g.numhashes)), avg, maxb, maxn, minb, minn, score, AvgBitsChanged, Deltascore)
-	fmt.Printf(" %33x ", g.last)
+	fmt.Printf(" \"%30s\"::%30x diff:=%16x", g.diffsrc, g.diffHash[:16], g.difficulty)
 	fmt.Print("  ", spent)
+}
+
+func difficulty(hash []byte) uint64 {
+	// skip start leading bytes.  If they are not zero, the difficulty is zero
+	start := 2
+	for _, v := range hash[:start] {
+		if v != 0 {
+			return 0
+		}
+	}
+	// The next 8 bytes define the difficulty.  A smaller number is more difficult
+
+	// Shift v a byte left and add the new byte
+	as := func(v uint64, b byte) uint64 {
+		return (v << 8) + uint64(b)
+	}
+
+	// Calculate the difficulty
+	diff := uint64(0)
+	for i := start; i < start+8; i++ {
+		// Add each byte to an 8 byte difficulty, shifting the previous values left a byte each round
+		diff = as(diff, hash[i])
+	}
+	return diff
 }
 
 const Mapsiz = 0x4000
@@ -222,7 +256,7 @@ func (w Whash) Convert2(off1, off2 int64, ints [32]int64) (bytes [32]byte) {
 		b = byte(v^off1^off2) ^ b
 		off1 = off1>>3 ^ off1<<7 ^ v ^ int64(i)
 		off2 = off2>>5 ^ off1<<3 ^ v ^ int64(i)
-		bytes[i] = b ^ b<<8 ^ b<<16 ^ b<<24 ^ b<<32
+		bytes[i] = w.maps[(int64(w.maps[b])+off1)&(Mapsiz-1)]
 	}
 	return
 }
@@ -268,7 +302,7 @@ func (w Whash) Hash2(src []byte) []byte {
 	return c[:]
 }
 
-func main() {
+func BitChangeTest() {
 	var wh Whash
 	wh.Init()
 	var g1 Gradehash
@@ -320,12 +354,12 @@ func main() {
 				g1.Start()
 				sv := sha256.Sum256(buf)
 				g1.Stop()
-				g1.AddHash(sv[:])
+				g1.AddHash(buf, sv[:])
 
 				g2.Start()
 				wv := wh.Hash2(buf)
 				g2.Stop()
-				g2.AddHash(wv)
+				g2.AddHash(buf, wv)
 
 				// flipping a bit again repairs it.
 				buf[i] = buf[i] ^ bit_to_flip
@@ -341,5 +375,67 @@ func main() {
 			start = t
 		}
 
+	}
+}
+
+func main() {
+	var wh Whash
+	wh.Init()
+	var g1 Gradehash
+	var g2 Gradehash
+
+	const maxsample = 1
+	const minsample = 63
+
+	getbuf := func() []byte {
+		nbuf := random.RandByteSliceOfLen(rand.Intn(maxsample) + minsample)
+		return nbuf
+	}
+	getbuf2 := func() []byte {
+		bytes := make([]byte, rand.Intn(maxsample)+minsample)
+		for i := 0; i < len(bytes); i++ {
+			if rand.Intn(10) == 0 {
+				bytes[i] = 32
+			} else {
+				if rand.Intn(2) == 0 {
+					bytes[i] = byte(65 + rand.Intn(26)) //A=65 and Z = 65+25
+				} else {
+					bytes[i] = byte(97 + rand.Intn(26))
+				}
+			}
+		}
+		return bytes
+	}
+	_ = getbuf
+	_ = getbuf2
+
+	start := time.Now()
+
+	wh.Init()
+	buf := getbuf2()
+	for i := 0; i < 100000000000; i++ {
+
+		// Get a new buffer of data.
+		buf = getbuf2()
+
+		g1.Start()
+		sv := sha256.Sum256(buf)
+		g1.Stop()
+		g1.AddHash(buf, sv[:])
+
+		g2.Start()
+		wv := wh.Hash2(buf)
+		g2.Stop()
+		g2.AddHash(buf, wv)
+
+		if i%10000 == 0 {
+			t := time.Now()
+			if t.Unix()-start.Unix() > 5 {
+				fmt.Println("\n", string(buf))
+				g1.Report("sha")
+				g2.Report("wh")
+				start = t
+			}
+		}
 	}
 }
