@@ -1,11 +1,11 @@
 package main
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"io/ioutil"
 	"os"
 
-	"crypto/sha256"
 	"github.com/FactomProject/factomd/common/primitives/random"
 	"github.com/dustin/go-humanize"
 	"math/rand"
@@ -19,10 +19,11 @@ type Gradehash struct {
 	last          []byte
 	exctime       int64
 	start         int64
+	bitsChanged   int
+	bitsDelta     int
 }
 
 func (g *Gradehash) AddHash(hash []byte) {
-	g.last = hash
 
 	for _, v := range hash {
 		g.bytefrequency[v]++
@@ -32,6 +33,24 @@ func (g *Gradehash) AddHash(hash []byte) {
 	for i, v := range hash {
 		g.positionSums[i] += int(v)
 	}
+	changedhere := 0
+	// pick one of 64 bytes
+	for i := 0; i < len(g.last); i++ {
+		// pick one of 8 bits
+		for j := 0; j < 8; j++ {
+
+			// Calculate a bit to check
+			bit_to_flip := byte(1 << uint(j))
+			if (g.last[i] & bit_to_flip) != (hash[i] & bit_to_flip) {
+				g.bitsChanged++
+				changedhere++
+			}
+
+		}
+	}
+	g.bitsDelta += (changedhere - 128) * (changedhere - 128)
+	g.last = hash
+
 }
 
 func (g *Gradehash) Start() {
@@ -60,14 +79,18 @@ func (g *Gradehash) Report(name string) {
 		diffs = append(diffs, (float64(v) - avg))
 	}
 	maxn := float64(0)
+	maxb := 0
+	minb := 0
 	minn := float64(0)
 	score := float64(0)
-	for _, v := range diffs {
+	for i, v := range diffs {
 		if v > maxn {
 			maxn = v
+			maxb = i
 		}
 		if v < minn {
 			minn = v
+			minb = i
 		}
 		diff := v / float64(g.numhashes) * 10000000000 // Normalize the diff for the samples we have taken, and scale up.
 		score += diff * diff                           // base the score on the square of the difference
@@ -81,7 +104,10 @@ func (g *Gradehash) Report(name string) {
 	millisec := (g.exctime - (spentSec * 1000000000)) / 1000000
 	spent := fmt.Sprintf("seconds %8d.%03d", spentSec, millisec)
 
-	fmt.Printf("\n%5s %12s:: avg %10.2f maxdiff %10.6f mindiff %10.6f score %20.2f:", name, humanize.Comma(int64(g.numhashes)), avg, maxn, minn, score)
+	AvgBitsChanged := float64(g.bitsChanged) / float64(g.numhashes)
+	Deltascore := g.bitsDelta / g.numhashes
+	fmt.Printf("\n%5s %12s:: avg %10.2f maxdiff %3d=%10.6f mindiff %3d=%10.6f score %20.2f bitschanged %6.2f  DeltaScore: %20d",
+		name, humanize.Comma(int64(g.numhashes)), avg, maxb, maxn, minb, minn, score, AvgBitsChanged, Deltascore)
 	fmt.Printf(" %33x ", g.last)
 	fmt.Print("  ", spent)
 }
@@ -190,39 +216,128 @@ func (w Whash) Hash(src []byte) []byte {
 	return c[:]
 }
 
+func (w Whash) Convert2(offset int64, ints [32]int64) (bytes [32]byte) {
+	var b byte
+	for i, v := range ints {
+		b = byte(v^offset) ^ b
+		offset = offset>>1 ^ offset<<1 ^ v
+		bytes[i] = b
+	}
+	return
+}
+
+const HBits = 0x20
+const HMask = HBits - 1
+
+// Takes a source of bytes, returns a 32 byte hash
+func (w Whash) Hash2(src []byte) []byte {
+	hashes := [HBits]int64{}
+	i := int32(1)
+	offset := int64(len(src))
+	step := func(v byte) {
+		i0 := i & HMask
+		i1 := (i + 1) & HMask
+		i3 := (i + 2) & HMask
+		i6 := (i + 3) & HMask
+
+		h0 := hashes[i0]
+		h1 := hashes[i1]
+		h3 := hashes[i3]
+		h6 := hashes[i6]
+
+		// Shift up a byte what is in offset, combined with offset shifted down a bit, combined with a byte and index
+		offset = (offset << 7) ^ (offset >> 1)
+		vx := int64(v)
+		for j := 1; j < 6; j++ {
+			vx = ^vx ^ vx<<uint(8*j)
+		}
+		offset = offset ^ vx ^ int64(i) ^ (h0 >> 1) ^ (h1) ^ (h3 >> 3) ^ (h6)
+		hashes[i6] = (h6 << 11) ^ (h6 >> 1) ^ (^(offset & (h0 ^ int64(v) ^ int64(i))))
+		hashes[i3] = (h3 << 10) ^ (h3 >> 1) ^ (^(offset & (h6 ^ int64(v) ^ int64(i))))
+		hashes[i1] = (h1 << 9) ^ (h1 >> 1) ^ (^(offset & (h3 ^ int64(v) ^ int64(i))))
+		hashes[i0] = (h0 << 8) ^ (h0 >> 1) ^ (^(offset & (h1 ^ int64(v) ^ int64(i))))
+		i += 17
+	}
+	for _, v := range src {
+		step(v)
+	}
+
+	c := w.Convert2(offset, hashes)
+	return c[:]
+}
+
 func main() {
 	var wh Whash
-	var g0 Gradehash
+
 	var g1 Gradehash
 	var g2 Gradehash
 
+	const maxsample = 1
+	const minsample = 63
+
 	getbuf := func() []byte {
-		nbuf := random.RandByteSliceOfLen(rand.Intn(1024000) + 10240)
+		nbuf := random.RandByteSliceOfLen(rand.Intn(maxsample) + minsample)
 		return nbuf
 	}
+	getbuf2 := func() []byte {
+		bytes := make([]byte, rand.Intn(maxsample)+minsample)
+		for i := 0; i < len(bytes); i++ {
+			if rand.Intn(10) == 0 {
+				bytes[i] = 32
+			} else {
+				if rand.Intn(2) == 0 {
+					bytes[i] = byte(65 + rand.Intn(26)) //A=65 and Z = 65+25
+				} else {
+					bytes[i] = byte(97 + rand.Intn(26))
+				}
+			}
+		}
+		return bytes
+	}
+	_ = getbuf
+	_ = getbuf2
+
+	start := time.Now()
 
 	wh.Init()
-	for i := 0; i < 1000000000; i++ {
-		g0.Start()
-		buf := getbuf()
-		g0.Stop()
-		g0.AddHash(buf[:32])
+	buf := getbuf2()
+	for i := 0; i < 100000000000; i++ {
 
-		g1.Start()
-		sv := sha256.Sum256(buf)
-		g1.Stop()
-		g1.AddHash(sv[:])
+		// Get a new buffer of data.
+		buf = getbuf2()
 
-		g2.Start()
-		wv := wh.Hash(buf)
-		g2.Stop()
-		g2.AddHash(wv)
+		// pick one of 64 bytes
+		for i := 0; i < len(buf); i++ {
+			// pick one of 8 bits
+			for j := 0; j < 8; j++ {
 
-		if (i+1)%(100) == 0 {
-			fmt.Println()
-			g0.Report("rand")
+				// Calculate a bit to flip, and flip it.
+				bit_to_flip := byte(1 << uint(j))
+				buf[i] = buf[i] ^ bit_to_flip
+
+				g1.Start()
+				sv := sha256.Sum256(buf)
+				g1.Stop()
+				g1.AddHash(sv[:])
+
+				g2.Start()
+				wv := wh.Hash2(buf)
+				g2.Stop()
+				g2.AddHash(wv)
+
+				// flipping a bit again repairs it.
+				buf[i] = buf[i] ^ bit_to_flip
+
+			}
+		}
+
+		t := time.Now()
+		if t.Unix()-start.Unix() > 5 {
+			fmt.Println("\n", string(buf))
 			g1.Report("sha")
 			g2.Report("wh")
+			start = t
 		}
+
 	}
 }
