@@ -48,7 +48,7 @@ func (g *Gradehash) AddHash(hash []byte) {
 
 		}
 	}
-	g.bitsDelta += (changedhere - 128) * (changedhere - 128)
+	g.bitsDelta += (changedhere - 128) * (changedhere - 128) * 100
 	g.last = hash
 
 }
@@ -112,7 +112,7 @@ func (g *Gradehash) Report(name string) {
 	fmt.Print("  ", spent)
 }
 
-const Mapsiz = 0x800
+const Mapsiz = 0x4000
 
 type Whash struct {
 	maps [Mapsiz]byte // Integer Offsets
@@ -216,12 +216,13 @@ func (w Whash) Hash(src []byte) []byte {
 	return c[:]
 }
 
-func (w Whash) Convert2(offset int64, ints [32]int64) (bytes [32]byte) {
+func (w Whash) Convert2(off1, off2 int64, ints [32]int64) (bytes [32]byte) {
 	var b byte
 	for i, v := range ints {
-		b = byte(v^offset) ^ b
-		offset = offset>>1 ^ offset<<1 ^ v
-		bytes[i] = b
+		b = byte(v^off1^off2) ^ b
+		off1 = off1>>3 ^ off1<<7 ^ v ^ int64(i)
+		off2 = off2>>5 ^ off1<<3 ^ v ^ int64(i)
+		bytes[i] = b ^ b<<8 ^ b<<16 ^ b<<24 ^ b<<32
 	}
 	return
 }
@@ -233,42 +234,43 @@ const HMask = HBits - 1
 func (w Whash) Hash2(src []byte) []byte {
 	hashes := [HBits]int64{}
 	i := int32(1)
-	offset := int64(len(src))
+	off1 := int64(len(src)) << 30
+	off2 := int64(len(src)) << 26
 	step := func(v byte) {
-		i0 := i & HMask
+		i0 := (i + 0) & HMask
 		i1 := (i + 1) & HMask
-		i3 := (i + 2) & HMask
-		i6 := (i + 3) & HMask
+		i2 := (i + 2) & HMask
+		i3 := (i + 3) & HMask
 
 		h0 := hashes[i0]
 		h1 := hashes[i1]
+		h2 := hashes[i2]
 		h3 := hashes[i3]
-		h6 := hashes[i6]
 
 		// Shift up a byte what is in offset, combined with offset shifted down a bit, combined with a byte and index
-		offset = (offset << 7) ^ (offset >> 1)
-		vx := int64(v)
-		for j := 1; j < 6; j++ {
-			vx = ^vx ^ vx<<uint(8*j)
-		}
-		offset = offset ^ vx ^ int64(i) ^ (h0 >> 1) ^ (h1) ^ (h3 >> 3) ^ (h6)
-		hashes[i6] = (h6 << 11) ^ (h6 >> 1) ^ (^(offset & (h0 ^ int64(v) ^ int64(i))))
-		hashes[i3] = (h3 << 10) ^ (h3 >> 1) ^ (^(offset & (h6 ^ int64(v) ^ int64(i))))
-		hashes[i1] = (h1 << 9) ^ (h1 >> 1) ^ (^(offset & (h3 ^ int64(v) ^ int64(i))))
-		hashes[i0] = (h0 << 8) ^ (h0 >> 1) ^ (^(offset & (h1 ^ int64(v) ^ int64(i))))
+		bi := int64(v) ^ int64(i)
+		off1 = (off1 << 5) ^ (^(off1 & off2) >> 3) ^ (bi << 28) ^ h2 ^ h1 ^ int64(w.maps[(h1+bi+off1)&int64(Mapsiz-1)])
+		off2 = (off2 << 3) ^ (^(off2 & off1) >> 5) ^ (bi << 56) ^ (bi << 4) ^ h3 ^ h0 ^ int64(w.maps[(int64(v)+off2)&int64(Mapsiz-1)])
+
+		//hashes[i3] = (h3 << 11) ^ (h3 >> 9) ^ (off1 & h0) ^ off2
+		//hashes[i2] = (h2 << 7) ^ (h2 >> 5) ^ (off2 & h1) ^ off1
+		//hashes[i1] = (h1 << 9) ^ (h1 >> 7) ^ (off1 & h2) ^ off2
+		hashes[i0] = (h0 << 5) ^ (h0 >> 1) ^ (off1 & h3) ^ (off1 & h1) ^ off2
+		//hashes[i1] = (h1 << 3) ^ (h1 >> 1) ^ (off1 & h1) ^ (off1 & h0) ^ off2
+		//hashes[i0] = (h2 << 7) ^ (h2 >> 1) ^ (off1 & h2) ^ (off1 & h3) ^ off2
 		i += 17
 	}
 	for _, v := range src {
 		step(v)
 	}
 
-	c := w.Convert2(offset, hashes)
+	c := w.Convert2(off1, off2, hashes)
 	return c[:]
 }
 
 func main() {
 	var wh Whash
-
+	wh.Init()
 	var g1 Gradehash
 	var g2 Gradehash
 
