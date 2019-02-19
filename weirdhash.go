@@ -14,7 +14,7 @@ import (
 
 const (
 	firstrand = 0x13ef13156da2756b
-	Mapsiz    = 0x8000
+	Mapsiz    = 0x1000
 	HBits     = 0x20
 	HMask     = HBits - 1
 	maxsample = 1
@@ -273,30 +273,22 @@ func (w Whash) Hash2(src []byte) []byte {
 	hashes := [HBits]int64{}
 	i := int32(1)
 	off1 := int64(len(src)) << 30
-	off2 := int64(len(src)) << 26
+	off2 := int64(len(src)) << 25
 	step := func(v byte) {
 		i0 := (i + 0) & HMask
-		i1 := (i + 1) & HMask
-		i2 := (i + 2) & HMask
-		i3 := (i + 3) & HMask
+		i1 := (i + 5) & HMask
 
 		h0 := hashes[i0]
 		h1 := hashes[i1]
-		h2 := hashes[i2]
-		h3 := hashes[i3]
 
 		// Shift up a byte what is in offset, combined with offset shifted down a bit, combined with a byte and index
-		bi := int64(v) ^ int64(i)
-		off1 = (off1 << 5) ^ (^(off1 & off2) >> 3) ^ (bi << 28) ^ h2 ^ h1 ^ int64(w.maps[(h1+bi+off1)&int64(Mapsiz-1)])
-		off2 = (off2 << 3) ^ (^(off2 & off1) >> 5) ^ (bi << 56) ^ (bi << 4) ^ h3 ^ h0 ^ int64(w.maps[(int64(v)+off2)&int64(Mapsiz-1)])
+		bi := int64(w.maps[(off1^int64(v))&(Mapsiz-1)]) ^ int64(i)
+		off1 = (off1 << 7) ^ off1 ^ (^(off1 & h0) >> 7) ^ (bi << 28) ^ h1
+		off2 = off2 ^ int64(w.maps[(off1^bi)&(Mapsiz-1)])
 
-		//hashes[i3] = (h3 << 11) ^ (h3 >> 9) ^ (off1 & h0) ^ off2
-		//hashes[i2] = (h2 << 7) ^ (h2 >> 5) ^ (off2 & h1) ^ off1
-		//hashes[i1] = (h1 << 9) ^ (h1 >> 7) ^ (off1 & h2) ^ off2
-		hashes[i0] = (h0 << 5) ^ (h0 >> 1) ^ (off1 & h3) ^ (off1 & h1) ^ off2
-		//hashes[i1] = (h1 << 3) ^ (h1 >> 1) ^ (off1 & h1) ^ (off1 & h0) ^ off2
-		//hashes[i0] = (h2 << 7) ^ (h2 >> 1) ^ (off1 & h2) ^ (off1 & h3) ^ off2
-		i += 17
+		hashes[i0] = (h0 << 3) ^ h0 ^ (h0 >> 3) ^ off2
+		hashes[i1] = (h1 << 1) ^ h1 ^ (h1 >> 1) ^ off1
+		i += 3
 	}
 	for _, v := range src {
 		step(v)
