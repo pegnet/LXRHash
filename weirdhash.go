@@ -14,7 +14,7 @@ import (
 
 const (
 	firstrand = 0x13ef13156da2756b
-	Mapsiz    = 0x1000
+	Mapsiz    = 0x400
 	HBits     = 0x20
 	HMask     = HBits - 1
 	maxsample = 1
@@ -60,7 +60,7 @@ func (g *Gradehash) AddHash(src []byte, hash []byte) {
 
 		}
 	}
-	g.bitsDelta += (changedhere - 128) * (changedhere - 128) * 100
+	g.bitsDelta += (changedhere - 128) * (changedhere - 128) * 100000
 	g.last = hash
 
 	diff := difficulty(hash)
@@ -170,7 +170,7 @@ func (w *Whash) Init() {
 		rands := [Mapsiz]int{}
 		offset := firstrand
 		rand := func(i int) int {
-			offset += i + offset<<4 + offset>>3 ^ rands[offset&(Mapsiz-1)]
+			offset = offset ^ (i << 30) + offset<<5 + offset>>5 ^ rands[offset&(Mapsiz-1)]
 			rands[i] += offset
 			return rands[i] & (Mapsiz - 1)
 		}
@@ -184,7 +184,7 @@ func (w *Whash) Init() {
 		// Now what we want to do is just mix it all up.  Take every byte in the maps list, and exchange it
 		// for some other byte in the maps list. Note that we do this over and over, mixing and more mixing
 		// the maps, but maintaining the ratio of each byte value in the maps list.
-		for loops := 0; loops < 5000; loops++ {
+		for loops := 0; loops < 15000; loops++ {
 			fmt.Println("Pass ", loops)
 			for i := range w.maps {
 				j := rand(i)
