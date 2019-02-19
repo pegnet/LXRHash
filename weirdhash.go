@@ -12,6 +12,15 @@ import (
 	"time"
 )
 
+const (
+	firstrand = 0x13ef13156da2756b
+	Mapsiz    = 0x8000
+	HBits     = 0x20
+	HMask     = HBits - 1
+	maxsample = 1
+	minsample = 63
+)
+
 type Gradehash struct {
 	bytefrequency [256]int
 	numhashes     int
@@ -146,8 +155,6 @@ func difficulty(hash []byte) uint64 {
 	return diff
 }
 
-const Mapsiz = 0x4000
-
 type Whash struct {
 	maps [Mapsiz]byte // Integer Offsets
 }
@@ -161,7 +168,7 @@ func (w *Whash) Init() {
 
 		// Our own "random" generator that really is just used to shuffle values
 		rands := [Mapsiz]int{}
-		offset := 0
+		offset := firstrand
 		rand := func(i int) int {
 			offset += i + offset<<4 + offset>>3 ^ rands[offset&(Mapsiz-1)]
 			rands[i] += offset
@@ -261,9 +268,6 @@ func (w Whash) Convert2(off1, off2 int64, ints [32]int64) (bytes [32]byte) {
 	return
 }
 
-const HBits = 0x20
-const HMask = HBits - 1
-
 // Takes a source of bytes, returns a 32 byte hash
 func (w Whash) Hash2(src []byte) []byte {
 	hashes := [HBits]int64{}
@@ -307,9 +311,6 @@ func BitChangeTest() {
 	wh.Init()
 	var g1 Gradehash
 	var g2 Gradehash
-
-	const maxsample = 1
-	const minsample = 63
 
 	getbuf := func() []byte {
 		nbuf := random.RandByteSliceOfLen(rand.Intn(maxsample) + minsample)
@@ -384,9 +385,6 @@ func main() {
 	var g1 Gradehash
 	var g2 Gradehash
 
-	const maxsample = 1
-	const minsample = 63
-
 	getbuf := func() []byte {
 		nbuf := random.RandByteSliceOfLen(rand.Intn(maxsample) + minsample)
 		return nbuf
@@ -431,7 +429,7 @@ func main() {
 		if i%10000 == 0 {
 			t := time.Now()
 			if t.Unix()-start.Unix() > 5 {
-				fmt.Println("\n", string(buf))
+				fmt.Println()
 				g1.Report("sha")
 				g2.Report("wh")
 				start = t
