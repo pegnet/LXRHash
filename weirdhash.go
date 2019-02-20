@@ -261,8 +261,8 @@ func (w Whash) Convert2(off1, off2 int64, ints [32]int64) (bytes [32]byte) {
 	var b byte
 	for i, v := range ints {
 		b = byte(v^off1^off2) ^ b
-		off1 = off1>>3 ^ off1<<7 ^ v ^ int64(i)
-		off2 = off2>>5 ^ off1<<3 ^ v ^ int64(i)
+		off1 = off1>>9 ^ off1>>1 ^ off1<<7 ^ v ^ int64(i)
+		off2 = off2>>7 ^ off2<<1 ^ off2<<9 ^ v ^ int64(i)
 		bytes[i] = w.maps[(int64(w.maps[b])+off1)&(Mapsiz-1)]
 	}
 	return
@@ -273,7 +273,6 @@ func (w Whash) Hash2(src []byte) []byte {
 	hashes := [HBits]int64{}
 	i := int32(1)
 	off1 := int64(len(src)) << 30
-	off2 := int64(len(src)) << 25
 	step := func(v byte) {
 		i0 := (i + 0) & HMask
 		i1 := (i + 5) & HMask
@@ -283,18 +282,17 @@ func (w Whash) Hash2(src []byte) []byte {
 
 		// Shift up a byte what is in offset, combined with offset shifted down a bit, combined with a byte and index
 		bi := int64(w.maps[(off1^int64(v))&(Mapsiz-1)]) ^ int64(i)
-		off1 = (off1 << 7) ^ off1 ^ (^(off1 & h0) >> 7) ^ (bi << 28) ^ h1
-		off2 = off2 ^ int64(w.maps[(off1^bi)&(Mapsiz-1)])
+		off1 = (off1 << 7) ^ (off1 >> 1) ^ (^(off1 & h0) >> 9) ^ (bi << 28) ^ h1
 
-		hashes[i0] = (h0 << 3) ^ h0 ^ (h0 >> 3) ^ off2
-		hashes[i1] = (h1 << 1) ^ h1 ^ (h1 >> 1) ^ off1
-		i += 3
+		hashes[i0] = (h0 << 7) ^ (h0 >> 1) ^ (h0 >> 9) ^ off1
+		hashes[i1] = h1 ^ h0 ^ int64(w.maps[(off1^bi)&(Mapsiz-1)])<<30
+		i += 1
 	}
 	for _, v := range src {
 		step(v)
 	}
 
-	c := w.Convert2(off1, off2, hashes)
+	c := w.Convert2(off1, off1, hashes)
 	return c[:]
 }
 
