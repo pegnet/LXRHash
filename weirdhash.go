@@ -60,7 +60,7 @@ func (g *Gradehash) AddHash(src []byte, hash []byte) {
 
 		}
 	}
-	g.bitsDelta += (changedhere - 128) * (changedhere - 128) * 100000
+	g.bitsDelta += (changedhere - 128) * (changedhere - 128)
 	g.last = hash
 
 	diff := difficulty(hash)
@@ -123,10 +123,20 @@ func (g *Gradehash) Report(name string) {
 	millisec := (g.exctime - (spentSec * 1000000000)) / 1000000
 	spent := fmt.Sprintf("seconds %8d.%03d", spentSec, millisec)
 
-	AvgBitsChanged := float64(g.bitsChanged) / float64(g.numhashes)
-	Deltascore := g.bitsDelta / g.numhashes
-	fmt.Printf("\n%5s %12s:: avg %10.2f maxdiff %3d=%10.6f mindiff %3d=%10.6f score %20.2f bitschanged %6.2f  DeltaScore: %20d",
-		name, humanize.Comma(int64(g.numhashes)), avg, maxb, maxn, minb, minn, score, AvgBitsChanged, Deltascore)
+	// Calculate how far off from half (128) we are.  Cause that is what matters.
+	AvgBitsChanged := 128 - float64(g.bitsChanged)/float64(g.numhashes)
+	if AvgBitsChanged < 0 {
+		AvgBitsChanged *= -1
+	}
+	Deltascore := float64(g.bitsDelta) / float64(g.numhashes)
+	fmt.Printf("\n| %5s %12s:: | max,min : %3d% 10.6f : %3d %10.6f : | score %14.2f | 128Delta:  %10.8f | Sqr(Delta) %10.6f |",
+		name,
+		humanize.Comma(int64(g.numhashes)),
+		maxb, maxn,
+		minb, minn,
+		score,
+		AvgBitsChanged,
+		Deltascore)
 	fmt.Printf(" \"%30s\"::%30x diff:=%16x", g.diffsrc, g.diffHash[:16], g.difficulty)
 	fmt.Print("  ", spent)
 }
