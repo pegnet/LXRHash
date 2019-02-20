@@ -87,6 +87,8 @@ func main() {
 	var g1 Gradehash
 	var g2 Gradehash
 
+	rand.Seed(13243442344225879)
+
 	getbuf := func() []byte {
 		nbuf := random.RandByteSliceOfLen(rand.Intn(maxsample) + minsample)
 		return nbuf
@@ -113,7 +115,7 @@ func main() {
 
 	wh.Init()
 	buf := getbuf2()
-	for i := 0; i < 100000000000; i++ {
+	for i := 1; i < 100000000000; i++ {
 
 		// Get a new buffer of data.
 		buf = getbuf2()
@@ -128,7 +130,7 @@ func main() {
 		g2.Stop()
 		g2.AddHash(buf, wv)
 
-		if i%10000 == 0 {
+		if i%1000000 == 0 {
 			t := time.Now()
 			if t.Unix()-start.Unix() > 5 {
 				fmt.Println()

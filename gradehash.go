@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+var runStart int64
+
 type Gradehash struct {
 	bytefrequency [256]int
 	numhashes     int
@@ -21,6 +23,10 @@ type Gradehash struct {
 }
 
 func (g *Gradehash) AddHash(src []byte, hash []byte) {
+
+	if runStart == 0 {
+		runStart = time.Now().Unix()
+	}
 
 	for _, v := range hash {
 		g.bytefrequency[v]++
@@ -67,6 +73,15 @@ func (g *Gradehash) Stop() {
 }
 
 func (g *Gradehash) Report(name string) {
+	now := time.Now().Unix()
+	secs := now - runStart
+	hrs := secs / 60 / 60
+	secs = secs - hrs*60*60
+	mins := secs / 60
+	secs = secs - mins*60
+
+	runtime := fmt.Sprintf("%4d:%02d:%02d", hrs, mins, secs)
+
 	if g.numhashes == 0 {
 		fmt.Println("no report data")
 		return
@@ -114,7 +129,8 @@ func (g *Gradehash) Report(name string) {
 		AvgBitsChanged *= -1
 	}
 	Deltascore := float64(g.bitsDelta) / float64(g.numhashes)
-	fmt.Printf("\n| %5s %12s:: | max,min : %3d% 10.6f : %3d %10.6f : | score %14.2f | 128Delta:  %10.8f | Sqr(Delta) %10.6f |",
+	fmt.Printf("\n%s | %5s %12s:: | max,min : %3d% 10.6f : %3d %10.6f : | score %14.2f | 128Delta:  %10.8f | Sqr(Delta) %10.6f |",
+		runtime,
 		name,
 		humanize.Comma(int64(g.numhashes)),
 		maxb, maxn,
