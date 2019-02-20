@@ -19,7 +19,6 @@ type PegHash struct {
 	maps [Mapsiz]byte // Integer Offsets
 }
 
-
 // Init()
 // We use our own algorithm for initializing the map struct.  This is an fairly large table of
 // byte values we use to map bytes to other byte values to enhance the avalanche nature of the hash
@@ -35,8 +34,8 @@ func (w *PegHash) Init() {
 		rands := [Mapsiz]int{}
 		offset := firstrand
 		rand := func(i int) int {
-			offset = offset ^ (i << 30) + offset<<5 + offset>>5 ^ rands[offset&(Mapsiz-1)]
-			rands[i] += offset
+			offset = offset ^ (i << 30) ^ offset<<7 ^ offset>>1&offset>>9 ^ rands[offset&(Mapsiz-1)]
+			rands[i] = offset ^ rands[i]
 			return rands[i] & (Mapsiz - 1)
 		}
 
