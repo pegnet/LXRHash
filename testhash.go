@@ -81,7 +81,7 @@ func BitChangeTest() {
 	}
 }
 
-func main() {
+func DifferentHashes() {
 	var wh PegHash
 	wh.Init()
 	var g1 Gradehash
@@ -140,4 +140,8 @@ func main() {
 			}
 		}
 	}
+}
+
+func main() {
+	BitChangeTest()
 }

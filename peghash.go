@@ -9,6 +9,7 @@ import (
 const (
 	firstrand = 0x13ef13156da2756b
 	Mapsiz    = 0x400
+	MapMask   = Mapsiz - 1
 	HBits     = 0x20
 	HMask     = HBits - 1
 	maxsample = 1
