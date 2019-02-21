@@ -96,9 +96,10 @@ func (w *PegHash) Init() {
 func (w PegHash) Hash(src []byte) []byte {
 
 	hashes := [HBits]int64{}
-	i := int32(1)
+	i := int64(1)
 	off1 := int64(len(src)) << 30
 
+	bi := int64(off1) << 13
 	// For each byte in the src, update the state (hashes, i, and off1)
 	for _, v := range src {
 		// Get my indexes of to elements in hashes
@@ -110,7 +111,7 @@ func (w PegHash) Hash(src []byte) []byte {
 		h1 := hashes[i1]
 
 		// Shift up a byte what is in offset, combined with offset shifted down a bit, combined with a byte and index
-		bi := int64(w.maps[(off1^int64(v))&(Mapsiz-1)]) ^ int64(i)
+		bi = int64(w.maps[(off1^int64(v))&(Mapsiz-1)]) ^ int64(i) ^ bi
 		off1 = (off1 << 7) ^ (off1 >> 1) ^ (^(off1 & h0) >> 9) ^ (bi << 28) ^ h1
 
 		// Update the values of the two elements in hashes
@@ -118,21 +119,21 @@ func (w PegHash) Hash(src []byte) []byte {
 		hashes[i1] = h1 ^ h0 ^ int64(w.maps[(off1^bi)&(Mapsiz-1)])<<30
 
 		// Step by 1, combining two new elements in hashes
-		i += 1
+		i += 17
 	}
 
 	// At this point, we have HBits of state in hashes.  We need to reduce them down to a byte,
 	// And we do so by doing a bit more bitwise math, and mapping the values through our byte map.
 
-	var b byte
-	var bytes [HBits]byte
+	b := int64(^off1)
+	bytes := [HBits]byte{}
 
 	off2 := off1
 	for i, v := range hashes {
-		b = byte(v^off1^off2) ^ b
-		off1 = off1>>9 ^ off1>>1 ^ off1<<7 ^ v ^ int64(i)
-		off2 = off2>>7 ^ off2<<1 ^ off2<<9 ^ v ^ int64(i)
-		bytes[i] = w.maps[(int64(w.maps[b])+off1)&(Mapsiz-1)]
+		b = v ^ off1 ^ b
+		off1 = off1>>9 ^ off1>>1 ^ off1<<7 ^ v ^ int64(i) ^ v>>8 ^ v>>16 ^ v>>24 ^ v>>32
+		off2 = off2>>7 ^ off2<<1 ^ off2<<9 ^ v ^ int64(i) ^ v>>18 ^ v>>26 ^ v>>34 ^ v>>42
+		bytes[i] = w.maps[(int64(w.maps[(int64(i)+v+b)&MapMask])+off1^v^v>>8^v>>16^v>>24^v>>32)&MapMask]
 	}
 	return bytes[:]
 }
