@@ -8,7 +8,7 @@ import (
 
 const (
 	firstrand = 0x13ef13156da2756b
-	Mapsiz    = 0x400
+	Mapsiz    = 0x800
 	MapMask   = Mapsiz - 1
 	HBits     = 0x20
 	HMask     = HBits - 1
@@ -47,7 +47,7 @@ func (w *PegHash) generateAndWrite() {
 	// Now what we want to do is just mix it all up.  Take every byte in the maps list, and exchange it
 	// for some other byte in the maps list. Note that we do this over and over, mixing and more mixing
 	// the maps, but maintaining the ratio of each byte value in the maps list.
-	for loops := 0; loops < 150000; loops++ {
+	for loops := 0; loops < 200000; loops++ {
 		fmt.Println("Pass ", loops)
 		for i := range w.maps {
 			j := rand(i)
@@ -95,45 +95,61 @@ func (w *PegHash) Init() {
 // Takes a source of bytes, returns a 32 byte (256 bit) hash
 func (w PegHash) Hash(src []byte) []byte {
 
-	hashes := [HBits]int64{}
-	i := int64(1)
-	off1 := int64(len(src)) << 30
+	// Keep the 32 byte intermediate result as int64 values until reduced.
+	var hashes [HBits]int64
+	// The intital offset into the lookup table is the length of the input.
+	// This prevents concatenation attacks, which adds to the protection from
+	// the reduction pass.
+	var offset = int64(len(src))
+	// We keep a series of previous states, and roll them along through each
+	// byte of source processed.
+	var last1, last2, last3 int64
 
-	bi := int64(off1) << 13
-	// For each byte in the src, update the state (hashes, i, and off1)
-	for _, v := range src {
-		// Get my indexes of to elements in hashes
-		i0 := (i + 0) & HMask
-		i1 := (i + 5) & HMask
+	// Pass through the source bytes, building up lastX values, hashes[], and offset
+	for i, v2 := range src {
+		// Take the byte from source (v2) and map it through the lookup table
+		// using the offset being maintained, and the rolling lastX values
+		v := w.maps[(offset^int64(v2)^last1^last2^last3)&MapMask]
 
-		// Get the values of the elements in hashes
-		h0 := hashes[i0]
-		h1 := hashes[i1]
+		// Roll the set of last values, leaving lingering influences from past
+		// values.
+		last3 = last2>>2 ^ last3
+		last2 = last1<<3 ^ last2
+		last1 = int64(v2) ^ last1<<1
 
-		// Shift up a byte what is in offset, combined with offset shifted down a bit, combined with a byte and index
-		bi = int64(w.maps[(off1^int64(v))&(Mapsiz-1)]) ^ int64(i) ^ bi
-		off1 = (off1 << 7) ^ (off1 >> 1) ^ (^(off1 & h0) >> 9) ^ (bi << 28) ^ h1
+		// Set one of the hashes[] using the last rolling value, the input byte v2,
+		// the mapped byte v, and the previous hashes[] value
+		h := hashes[i&HMask]
+		hashes[i&HMask] = last3 ^ int64(v^v2) ^ h
 
-		// Update the values of the two elements in hashes
-		hashes[i0] = (h0 << 7) ^ (h0 >> 1) ^ (h0 >> 9) ^ off1
-		hashes[i1] = h1 ^ h0 ^ int64(w.maps[(off1^bi)&(Mapsiz-1)])<<30
-
-		// Step by 1, combining two new elements in hashes
-		i += 17
+		// combine the l values, the previous offset, and the hashes[i]
+		offset = last1<<7 ^ last2<<3 ^ last3<<9 ^ offset<<8 ^ offset>>1 ^ h
 	}
 
+	// Reduction pass
+	// Done by Interating over hashes[] to produce the bytes[] hash
+	//
 	// At this point, we have HBits of state in hashes.  We need to reduce them down to a byte,
 	// And we do so by doing a bit more bitwise math, and mapping the values through our byte map.
 
-	b := int64(^off1)
-	bytes := [HBits]byte{}
+	var bytes [HBits]byte
 
-	off2 := off1
-	for i, v := range hashes {
-		b = v ^ off1 ^ b
-		off1 = off1>>9 ^ off1>>1 ^ off1<<7 ^ v ^ int64(i) ^ v>>8 ^ v>>16 ^ v>>24 ^ v>>32
-		off2 = off2>>7 ^ off2<<1 ^ off2<<9 ^ v ^ int64(i) ^ v>>18 ^ v>>26 ^ v>>34 ^ v>>42
-		bytes[i] = w.maps[(int64(w.maps[(int64(i)+v+b)&MapMask])+off1^v^v>>8^v>>16^v>>24^v>>32)&MapMask]
+	// Roll over all the hashes (32 int64 values)
+	for i, h := range hashes {
+		// Map each h using the offset and rolling values
+		v := w.maps[(offset^h^last1^last2^last3)&MapMask]
+		// Roll the last values
+		last3 = last2>>2 ^ last3
+		last2 = last1<<3 ^ last2
+		last1 = h ^ last1<<1
+
+		// Set a byte
+		bytes[i] = w.maps[(int64(v)^offset)&MapMask]
+
+		// combine the l values, the previous offset, and the hashes[i]
+		offset = last1<<7 ^ last2<<3 ^ last3<<9 ^ offset<<8 ^ offset>>1 ^ h
 	}
+
+	// Return the resulting hash
 	return bytes[:]
 }

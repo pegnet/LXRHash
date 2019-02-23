@@ -138,8 +138,8 @@ func (g *Gradehash) Report(name string) {
 		score,
 		AvgBitsChanged,
 		Deltascore)
-	fmt.Printf(" \"%30s\"::%30x diff:=%16x", g.diffsrc, g.diffHash[:16], g.difficulty)
-	fmt.Print("  ", spent)
+	fmt.Printf(" \"%20x\"::%30x diff:=%16x", g.diffsrc[:16], g.diffHash[:16], g.difficulty)
+	fmt.Print("  ", spent, "\n")
 }
 
 func difficulty(hash []byte) uint64 {

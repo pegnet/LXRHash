@@ -2,7 +2,6 @@ package main
 
 import (
 	"crypto/sha256"
-	"fmt"
 	"github.com/FactomProject/factomd/common/primitives/random"
 	"math/rand"
 )
@@ -12,13 +11,56 @@ func Getbuf() []byte {
 	return nbuf
 }
 
-func Getbuf2() []byte {
-	bytes := make([]byte, rand.Intn(maxsample)+minsample)
-	for i := 0; i < len(bytes); i++ {
-		values := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()-=_+[]\\{}|;'\",./<>?`~          "
-		bytes[i] = values[rand.Intn(len(values))]
+func BitCountTest() {
+	var wh PegHash
+	wh.Init()
+	var g1 Gradehash
+	var g2 Gradehash
+
+	wh.Init()
+	buf := Getbuf()
+	cnt := 0
+
+	for x := 0; x < 100000000000; x++ {
+		// Get a new buffer of data.
+		buf = Getbuf()
+
+		for i := 0; i < 10; i++ {
+			buf[i] = 0
+		}
+
+		for i := 0; i < 1000000; i++ {
+			// pick one of 64 bytes
+			for i := 0; ; i++ {
+				buf[i] += 1
+				if buf[i] != 0 {
+					break
+				}
+			}
+
+			cnt++
+
+			g1.Start()
+			sv := sha256.Sum256(buf)
+			g1.Stop()
+			g1.AddHash(buf, sv[:])
+
+			g2.Start()
+			wv := wh.Hash(buf)
+			g2.Stop()
+			g2.AddHash(buf, wv)
+
+		}
+
+		if cnt >= 4000000 {
+			cnt = 0
+
+			g1.Report("1-sha")
+			g2.Report("1- wh")
+
+		}
+
 	}
-	return bytes
 }
 
 func BitChangeTest() {
@@ -28,12 +70,12 @@ func BitChangeTest() {
 	var g2 Gradehash
 
 	wh.Init()
-	buf := Getbuf2()
+	buf := Getbuf()
 	cnt := 0
 
 	for x := 0; x < 100000000000; x++ {
 		// Get a new buffer of data.
-		buf = Getbuf2()
+		buf = Getbuf()
 
 		// pick one of 64 bytes
 		for i := 0; i < len(buf); i++ {
@@ -60,12 +102,11 @@ func BitChangeTest() {
 			}
 		}
 
-		if cnt > 1000000 {
+		if cnt > 4000000 {
 			cnt = 0
 
-			fmt.Println()
-			g1.Report("1 sha")
-			g2.Report("1 wh")
+			g1.Report("2-sha")
+			g2.Report("2- wh")
 
 		}
 
@@ -81,11 +122,11 @@ func DifferentHashes() {
 	rand.Seed(13243442344225879)
 
 	wh.Init()
-	buf := Getbuf2()
+	buf := Getbuf()
 	for i := 1; i < 100000000000; i++ {
 
 		// Get a new buffer of data.
-		buf = Getbuf2()
+		buf = Getbuf()
 
 		g1.Start()
 		sv := sha256.Sum256(buf)
@@ -97,16 +138,17 @@ func DifferentHashes() {
 		g2.Stop()
 		g2.AddHash(buf, wv)
 
-		if i%1000000 == 0 {
-			fmt.Println()
-			g1.Report("2 sha")
-			g2.Report("2 wh")
+		if i%4000000 == 0 {
+
+			g1.Report("3-sha")
+			g2.Report("3- wh")
 
 		}
 	}
 }
 
 func main() {
-	go BitChangeTest()
-	DifferentHashes()
+	BitCountTest()
+	//go BitChangeTest()
+	//DifferentHashes()
 }
