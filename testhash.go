@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"github.com/FactomProject/factomd/common/primitives/random"
 	"math/rand"
+	"time"
 )
 
 func Getbuf() []byte {
@@ -11,7 +12,7 @@ func Getbuf() []byte {
 	return nbuf
 }
 
-func BitCountTest() {
+func BitCountTest(rate int) {
 	var wh PegHash
 	wh.Init()
 	var g1 Gradehash
@@ -49,21 +50,61 @@ func BitCountTest() {
 			wv := wh.Hash(buf)
 			g2.Stop()
 			g2.AddHash(buf, wv)
+			time.Sleep(time.Millisecond)
+			if cnt >= rate {
+				cnt = 0
 
-		}
+				g1.Report("cnt-sha")
+				g2.Report("cnt- wh")
 
-		if cnt >= 4000000 {
-			cnt = 0
-
-			g1.Report("1-sha")
-			g2.Report("1- wh")
-
+			}
 		}
 
 	}
 }
 
-func BitChangeTest() {
+func AddByteTest(rate int) {
+	var wh PegHash
+	wh.Init()
+	var g1 Gradehash
+	var g2 Gradehash
+
+	wh.Init()
+	buf := Getbuf()
+	cnt := 0
+
+	for x := 0; x < 100000000000; x++ {
+		// Get a new buffer of data.
+		buf = Getbuf()
+
+		for i := 0; i < 10000; i++ {
+			cnt++
+
+			g1.Start()
+			sv := sha256.Sum256(buf)
+			g1.Stop()
+			g1.AddHash(buf, sv[:])
+
+			g2.Start()
+			wv := wh.Hash(buf)
+			g2.Stop()
+			g2.AddHash(buf, wv)
+
+			buf = append(buf, byte(rand.Intn(255)))
+			time.Sleep(time.Millisecond)
+			if cnt > rate {
+				cnt = 0
+
+				g1.Report("add-sha")
+				g2.Report("add- wh")
+
+			}
+		}
+
+	}
+}
+
+func BitChangeTest(rate int) {
 	var wh PegHash
 	wh.Init()
 	var g1 Gradehash
@@ -98,22 +139,23 @@ func BitChangeTest() {
 
 				// flipping a bit again repairs it.
 				buf[i] = buf[i] ^ bit_to_flip
+				time.Sleep(time.Millisecond)
 
+				if cnt > rate {
+					cnt = 0
+
+					g1.Report("bit-sha")
+					g2.Report("bit- wh")
+
+				}
 			}
-		}
-
-		if cnt > 4000000 {
-			cnt = 0
-
-			g1.Report("2-sha")
-			g2.Report("2- wh")
 
 		}
 
 	}
 }
 
-func DifferentHashes() {
+func DifferentHashes(rate int) {
 	var wh PegHash
 	wh.Init()
 	var g1 Gradehash
@@ -138,17 +180,26 @@ func DifferentHashes() {
 		g2.Stop()
 		g2.AddHash(buf, wv)
 
-		if i%4000000 == 0 {
+		if i%rate == 0 {
 
-			g1.Report("3-sha")
-			g2.Report("3- wh")
+			g1.Report("diff-sha")
+			g2.Report("diff- wh")
 
 		}
+		time.Sleep(time.Millisecond)
 	}
 }
 
 func main() {
-	BitCountTest()
-	//go BitChangeTest()
-	//DifferentHashes()
+	rate := 1000
+
+	go BitCountTest(rate)
+	go BitChangeTest(rate)
+	go DifferentHashes(rate)
+	go AddByteTest(rate)
+
+	// wait forever
+	for {
+		time.Sleep(1 * time.Second)
+	}
 }
