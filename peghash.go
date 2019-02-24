@@ -8,7 +8,7 @@ import (
 
 const (
 	firstrand = 0x13ef13156da2756b
-	Mapsiz    = 0x800
+	Mapsiz    = 0x400
 	MapMask   = Mapsiz - 1
 	HBits     = 0x20
 	HMask     = HBits - 1
@@ -105,17 +105,18 @@ func (w PegHash) Hash(src []byte) []byte {
 	// byte of source processed.
 	var last1, last2, last3 int64
 
+	v := byte(offset)
 	// Pass through the source bytes, building up lastX values, hashes[], and offset
 	for i, v2 := range src {
 		// Take the byte from source (v2) and map it through the lookup table
 		// using the offset being maintained, and the rolling lastX values
-		v := w.maps[(offset^int64(v2)^last1^last2^last3)&MapMask]
+		v = w.maps[(offset^int64(v2)^last1^last2^last3)&MapMask] ^ v
 
 		// Roll the set of last values, leaving lingering influences from past
 		// values.
-		last3 = last2>>2 ^ last3
-		last2 = last1<<3 ^ last2
-		last1 = int64(v2) ^ last1<<1
+		last3 = last2>>2 ^ last3 ^ last3>>5
+		last2 = last1<<3 ^ last2 ^ last2>>7
+		last1 = int64(v2) ^ last1<<1 ^ last1>>3
 
 		// Set one of the hashes[] using the last rolling value, the input byte v2,
 		// the mapped byte v, and the previous hashes[] value

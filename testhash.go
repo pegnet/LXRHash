@@ -50,7 +50,7 @@ func BitCountTest(rate int) {
 			wv := wh.Hash(buf)
 			g2.Stop()
 			g2.AddHash(buf, wv)
-			time.Sleep(time.Millisecond)
+
 			if cnt >= rate {
 				cnt = 0
 
@@ -75,9 +75,9 @@ func AddByteTest(rate int) {
 
 	for x := 0; x < 100000000000; x++ {
 		// Get a new buffer of data.
-		buf = Getbuf()
+		buf = []byte{byte(x)}
 
-		for i := 0; i < 10000; i++ {
+		for i := 0; i < 1000; i++ {
 			cnt++
 
 			g1.Start()
@@ -91,7 +91,7 @@ func AddByteTest(rate int) {
 			g2.AddHash(buf, wv)
 
 			buf = append(buf, byte(rand.Intn(255)))
-			time.Sleep(time.Millisecond)
+
 			if cnt > rate {
 				cnt = 0
 
@@ -139,7 +139,6 @@ func BitChangeTest(rate int) {
 
 				// flipping a bit again repairs it.
 				buf[i] = buf[i] ^ bit_to_flip
-				time.Sleep(time.Millisecond)
 
 				if cnt > rate {
 					cnt = 0
@@ -186,12 +185,12 @@ func DifferentHashes(rate int) {
 			g2.Report("diff- wh")
 
 		}
-		time.Sleep(time.Millisecond)
+
 	}
 }
 
 func main() {
-	rate := 1000
+	rate := 1000000
 
 	go BitCountTest(rate)
 	go BitChangeTest(rate)

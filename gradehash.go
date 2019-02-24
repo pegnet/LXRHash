@@ -15,6 +15,7 @@ type Gradehash struct {
 	last          []byte
 	exctime       int64
 	start         int64
+	samebytes     int
 	bitsChanged   int
 	bitsDelta     int
 	diffsrc       []byte
@@ -49,6 +50,9 @@ func (g *Gradehash) AddHash(src []byte, hash []byte) {
 				changedhere++
 			}
 
+		}
+		if g.last[i] == hash[i] {
+			g.samebytes++
 		}
 	}
 	g.bitsDelta += (changedhere - 128) * (changedhere - 128)
@@ -129,16 +133,22 @@ func (g *Gradehash) Report(name string) {
 		AvgBitsChanged *= -1
 	}
 	Deltascore := float64(g.bitsDelta) / float64(g.numhashes)
-	fmt.Printf("\n%s | %5s %12s:: | max,min : %3d% 10.6f : %3d %10.6f : | score %14.2f | 128Delta:  %10.8f | Sqr(Delta) %10.6f |",
+
+	bytesSame := float64(g.samebytes) / float64(g.numhashes)
+
+	fmt.Printf("\n%s | %5s %12s:: | sameBytes %10.6f | max,min : %3d% 10.6f : %3d %10.6f : | score %14.2f | 128Delta:  %10.8f | Sqr(Delta) %10.6f |",
 		runtime,
 		name,
 		humanize.Comma(int64(g.numhashes)),
+		bytesSame,
 		maxb, maxn,
 		minb, minn,
 		score,
 		AvgBitsChanged,
 		Deltascore)
-	fmt.Printf(" \"%20x\"::%30x diff:=%16x", g.diffsrc[:16], g.diffHash[:16], g.difficulty)
+	if len(g.diffsrc) > 16 && len(g.diffHash) > 16 {
+		fmt.Printf(" \"%20x\"::%30x diff:=%16x", g.diffsrc[:16], g.diffHash[:16], g.difficulty)
+	}
 	fmt.Print("  ", spent, "\n")
 }
 
