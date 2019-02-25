@@ -19,6 +19,8 @@ type Gradehash struct {
 	bitsChanged   int
 	bitsDelta     int
 	diffsrc       []byte
+	diffcnt       int
+	diffchanged   bool
 	difficulty    uint64
 	diffHash      []byte
 }
@@ -62,7 +64,11 @@ func (g *Gradehash) AddHash(src []byte, hash []byte) {
 	if g.difficulty == 0 || (diff != 0 && diff < g.difficulty) {
 		g.difficulty = diff
 		g.diffHash = hash
-		g.diffsrc = src
+		g.diffsrc = append(g.diffsrc[:0], src...)
+		if g.difficulty > 0 {
+			g.diffcnt++
+			g.diffchanged = true
+		}
 	}
 
 }
@@ -147,8 +153,14 @@ func (g *Gradehash) Report(name string) {
 		AvgBitsChanged,
 		Deltascore)
 	if len(g.diffsrc) > 16 && len(g.diffHash) > 16 {
-		fmt.Printf(" \"%20x\"::%30x diff:=%16x", g.diffsrc[:16], g.diffHash[:16], g.difficulty)
+		fmt.Printf(" \"%20x\"::%30x diff=%16x cnt=%5d  new=%5v",
+			g.diffsrc[:16],
+			g.diffHash[:16],
+			g.difficulty,
+			g.diffcnt,
+			g.diffchanged)
 	}
+	g.diffchanged = false
 	fmt.Print("  ", spent, "\n")
 }
 

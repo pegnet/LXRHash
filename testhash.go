@@ -13,7 +13,7 @@ func Getbuf() []byte {
 }
 
 func BitCountTest(rate int) {
-	var wh PegHash
+	var wh LXRHash
 	wh.Init()
 	var g1 Gradehash
 	var g2 Gradehash
@@ -64,7 +64,7 @@ func BitCountTest(rate int) {
 }
 
 func AddByteTest(rate int) {
-	var wh PegHash
+	var wh LXRHash
 	wh.Init()
 	var g1 Gradehash
 	var g2 Gradehash
@@ -105,7 +105,7 @@ func AddByteTest(rate int) {
 }
 
 func BitChangeTest(rate int) {
-	var wh PegHash
+	var wh LXRHash
 	wh.Init()
 	var g1 Gradehash
 	var g2 Gradehash
@@ -155,7 +155,7 @@ func BitChangeTest(rate int) {
 }
 
 func DifferentHashes(rate int) {
-	var wh PegHash
+	var wh LXRHash
 	wh.Init()
 	var g1 Gradehash
 	var g2 Gradehash

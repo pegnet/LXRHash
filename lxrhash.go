@@ -16,7 +16,7 @@ const (
 	minsample = 63
 )
 
-type PegHash struct {
+type LXRHash struct {
 	maps [Mapsiz]byte // Integer Offsets
 	good bool
 }
@@ -25,7 +25,7 @@ type PegHash struct {
 // If we do not have a file with our already computed bytes, then what we want to do
 // is do bitwise math to initialize and scramble our maps.  Once we have done this, we
 // write out the file.  If we have the file already, then we don't need to do this.
-func (w *PegHash) generateAndWrite() {
+func (w *LXRHash) generateAndWrite() {
 	// Ah, the data file isn't good for us.  Delete it (if it exists)
 	os.Remove("whashmaps.dat")
 
@@ -78,7 +78,7 @@ func (w *PegHash) generateAndWrite() {
 // We use our own algorithm for initializing the map struct.  This is an fairly large table of
 // byte values we use to map bytes to other byte values to enhance the avalanche nature of the hash
 // as well as increase the memory footprint of the hash.
-func (w *PegHash) Init() {
+func (w *LXRHash) Init() {
 
 	// Try and load our byte map.
 	dat, err := ioutil.ReadFile("whashmaps.dat")
@@ -93,7 +93,7 @@ func (w *PegHash) Init() {
 
 // Hash()
 // Takes a source of bytes, returns a 32 byte (256 bit) hash
-func (w PegHash) Hash(src []byte) []byte {
+func (w LXRHash) Hash(src []byte) []byte {
 
 	// Keep the 32 byte intermediate result as int64 values until reduced.
 	var hashes [HBits]int64
