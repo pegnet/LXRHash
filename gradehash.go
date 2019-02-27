@@ -165,7 +165,7 @@ func (g *Gradehash) Report(name string) {
 }
 
 func difficulty(hash []byte) uint64 {
-	// skip start leading bytes.  If they are not zero, the difficulty is zero
+	// skip start leading bytes If they are not zero, the difficulty is zero
 	start := 2
 	for _, v := range hash[:start] {
 		if v != 0 {
@@ -181,7 +181,7 @@ func difficulty(hash []byte) uint64 {
 
 	// Calculate the difficulty
 	diff := uint64(0)
-	for i := start; i < start+8; i++ {
+	for i := start; i < start+6; i++ {
 		// Add each byte to an 8 byte difficulty, shifting the previous values left a byte each round
 		diff = as(diff, hash[i])
 	}

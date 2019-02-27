@@ -114,9 +114,9 @@ func (w LXRHash) Hash(src []byte) []byte {
 
 		// Roll the set of last values, leaving lingering influences from past
 		// values.
-		last3 = last2>>2 ^ last3 ^ last3>>5
-		last2 = last1<<3 ^ last2 ^ last2>>7
-		last1 = int64(v2) ^ last1<<1 ^ last1>>3
+		last3 = last2>>2 ^ last3
+		last2 = last1<<3 ^ last2
+		last1 = int64(v2) ^ last1<<1
 
 		// Set one of the hashes[] using the last rolling value, the input byte v2,
 		// the mapped byte v, and the previous hashes[] value
