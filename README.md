@@ -5,7 +5,7 @@ This is a simple 256 bit hash that takes advantage of a lookup table of randomiz
 
 In developing this hash, the goal was to produce very randomized hashes as outputs, with a strong avalanche response to any change to any source byte.
 
-I only developed this hash as a thought experiment, but which none the less has some interesting qualities.
+LXR256 was only developed this hash as a thought experiment, but which none the less has some interesting qualities.
 
 * the lookup table can be any size, so making a version that is ASIC resistant is possible
 * at the current lookup table size, LXR256 is slightly faster than Sha256, at least in my tests
