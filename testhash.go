@@ -40,7 +40,7 @@ func JustMine(tag string) {
 		hashes := 0
 		start := time.Now().Unix()
 
-		for time.Now().Unix()-start < 8*60 {
+		for time.Now().Unix()-start < 60/3 {
 			for i := 0; i < 100000; i++ {
 				// increment the nonce
 				for i := 0; ; i++ {
@@ -82,7 +82,10 @@ func JustMine(tag string) {
 		}
 		hashes += cnt
 		sum += float64(diff) / float64(cnt)
-		fmt.Printf("%5s Average Difficulty %25f  total hashes %20d #blocks %d \n", tag, sum/float64(i), hashes, i)
+		fmt.Printf("%5s Average Difficulty %25f  total hashes %28s #blocks %d \n",
+			tag,
+			sum/float64(i),
+			humanize.Comma(int64(hashes)), i)
 
 	}
 }
