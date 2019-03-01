@@ -1,4 +1,4 @@
-package main
+package lxr
 
 import (
 	"fmt"
@@ -12,8 +12,6 @@ const (
 	MapMask   = Mapsiz - 1
 	HBits     = 0x20
 	HMask     = HBits - 1
-	maxsample = 1
-	minsample = 63
 )
 
 type LXRHash struct {
@@ -27,7 +25,7 @@ type LXRHash struct {
 // write out the file.  If we have the file already, then we don't need to do this.
 func (w *LXRHash) generateAndWrite() {
 	// Ah, the data file isn't good for us.  Delete it (if it exists)
-	os.Remove("whashmaps.dat")
+	os.Remove("lxrhash.dat")
 
 	// Our own "random" generator that really is just used to shuffle values
 	rands := [Mapsiz]int{}
@@ -56,7 +54,7 @@ func (w *LXRHash) generateAndWrite() {
 	}
 
 	// open output file
-	fo, err := os.Create("whashmaps.dat")
+	fo, err := os.Create("lxrhash.dat")
 	if err != nil {
 		panic(err)
 	}
@@ -81,7 +79,7 @@ func (w *LXRHash) generateAndWrite() {
 func (w *LXRHash) Init() {
 
 	// Try and load our byte map.
-	dat, err := ioutil.ReadFile("whashmaps.dat")
+	dat, err := ioutil.ReadFile("lxrhash.dat")
 
 	// If loading fails, or it is the wrong size, generate it.  Otherwise just use it.
 	if err != nil || len(dat) != Mapsiz {
