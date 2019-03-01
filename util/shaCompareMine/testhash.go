@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"github.com/FactomProject/factomd/common/primitives/random"
 	"github.com/dustin/go-humanize"
+	"github.com/pegnet/LXR256"
 	"math/rand"
 	"time"
-	"github.com/pegnet/LXR256"
 )
 
 const (
@@ -95,8 +95,6 @@ func JustMine(tag string) {
 
 	}
 }
-
-
 
 func main() {
 
