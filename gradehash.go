@@ -1,4 +1,4 @@
-package main
+package lxr
 
 import (
 	"fmt"
@@ -60,7 +60,7 @@ func (g *Gradehash) AddHash(src []byte, hash []byte) {
 	g.bitsDelta += (changedhere - 128) * (changedhere - 128)
 	g.last = hash
 
-	diff := difficulty(hash)
+	diff := Difficulty(hash)
 	if g.difficulty == 0 || (diff != 0 && diff < g.difficulty) {
 		g.difficulty = diff
 		g.diffHash = hash
@@ -142,7 +142,7 @@ func (g *Gradehash) Report(name string) {
 
 	bytesSame := float64(g.samebytes) / float64(g.numhashes)
 
-	fmt.Printf("\n%s | %5s %12s:: | sameBytes %10.6f | max,min : %3d% 10.6f : %3d %10.6f : | score %14.2f | 128Delta:  %10.8f | Sqr(Delta) %10.6f |",
+	fmt.Printf("\n%s | %8s %12s:: | sameBytes %10.6f | max,min : %3d% 10.6f : %3d %10.6f : | score %14.2f | 128Delta:  %10.8f | Sqr(Delta) %10.6f |",
 		runtime,
 		name,
 		humanize.Comma(int64(g.numhashes)),
@@ -164,25 +164,25 @@ func (g *Gradehash) Report(name string) {
 	fmt.Print("  ", spent, "\n")
 }
 
-func difficulty(hash []byte) uint64 {
-	// skip start leading bytes If they are not zero, the difficulty is zero
+func Difficulty(hash []byte) uint64 {
+	// skip start leading bytes If they are not zero, the Difficulty is zero
 	start := 2
 	for _, v := range hash[:start] {
 		if v != 0 {
 			return 0
 		}
 	}
-	// The next 8 bytes define the difficulty.  A smaller number is more difficult
+	// The next 8 bytes define the Difficulty.  A smaller number is more difficult
 
 	// Shift v a byte left and add the new byte
 	as := func(v uint64, b byte) uint64 {
 		return (v << 8) + uint64(b)
 	}
 
-	// Calculate the difficulty
+	// Calculate the Difficulty
 	diff := uint64(0)
 	for i := start; i < start+6; i++ {
-		// Add each byte to an 8 byte difficulty, shifting the previous values left a byte each round
+		// Add each byte to an 8 byte Difficulty, shifting the previous values left a byte each round
 		diff = as(diff, hash[i])
 	}
 	return diff
