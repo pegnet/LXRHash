@@ -48,7 +48,7 @@ func (w PegHash) Hash(src []byte) []byte {
 
 ```
 ## testing and sample apps
-util has two applications to run for various tests of LXR256.  
+The util folder under LXR256 has two applications to run for various tests of LXR256:  
 
-* shaCompare runs various inputs through sha256 and lxr256 and compares distributions of bytes produced, measures of the avalanche qualities, etc.  
-* shaCompareMine creates hashes, then mines them using lxr256 and compares that with sha256 mining.
+* **shaCompare** runs various inputs through sha256 and lxr256 and compares distributions of bytes produced, measures of the avalanche qualities, etc.  
+* **shaCompareMine** creates hashes, then mines them using lxr256 and compares that with sha256 mining.
