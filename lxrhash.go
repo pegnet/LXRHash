@@ -1,92 +1,12 @@
 package lxr
 
-import (
-	"fmt"
-	"io/ioutil"
-	"os"
-)
-
 const (
-	firstrand = 0x13ef13156da2756b
-	Mapsiz    = 0x400
-	MapMask   = Mapsiz - 1
 	HBits     = 0x20
 	HMask     = HBits - 1
 )
 
 type LXRHash struct {
-	maps [Mapsiz]byte // Integer Offsets
-	good bool
-}
-
-// generateAndWrite
-// If we do not have a file with our already computed bytes, then what we want to do
-// is do bitwise math to initialize and scramble our maps.  Once we have done this, we
-// write out the file.  If we have the file already, then we don't need to do this.
-func (w *LXRHash) generateAndWrite() {
-	// Ah, the data file isn't good for us.  Delete it (if it exists)
-	os.Remove("lxrhash.dat")
-
-	// Our own "random" generator that really is just used to shuffle values
-	rands := [Mapsiz]int{}
-	offset := firstrand
-	rand := func(i int) int {
-		offset = offset ^ (i << 30) ^ offset<<7 ^ offset>>1&offset>>9 ^ rands[offset&(Mapsiz-1)]
-		rands[i] = offset ^ rands[i]
-		return rands[i] & (Mapsiz - 1)
-	}
-
-	// Fill the maps with bytes ranging from 0 to 255.  As long as Mapsize%256 == 0, this
-	// looping and masking works just fine.
-	for i := range w.maps {
-		w.maps[i] = byte(i)
-	}
-
-	// Now what we want to do is just mix it all up.  Take every byte in the maps list, and exchange it
-	// for some other byte in the maps list. Note that we do this over and over, mixing and more mixing
-	// the maps, but maintaining the ratio of each byte value in the maps list.
-	for loops := 0; loops < 200000; loops++ {
-		fmt.Println("Pass ", loops)
-		for i := range w.maps {
-			j := rand(i)
-			w.maps[i], w.maps[j] = w.maps[j], w.maps[i]
-		}
-	}
-
-	// open output file
-	fo, err := os.Create("lxrhash.dat")
-	if err != nil {
-		panic(err)
-	}
-	// close fo on exit and check for its returned error
-	defer func() {
-		if err := fo.Close(); err != nil {
-			panic(err)
-		}
-	}()
-
-	// write a chunk
-	if _, err := fo.Write(w.maps[:]); err != nil {
-		panic(err)
-	}
-
-}
-
-// Init()
-// We use our own algorithm for initializing the map struct.  This is an fairly large table of
-// byte values we use to map bytes to other byte values to enhance the avalanche nature of the hash
-// as well as increase the memory footprint of the hash.
-func (w *LXRHash) Init() {
-
-	// Try and load our byte map.
-	dat, err := ioutil.ReadFile("lxrhash.dat")
-
-	// If loading fails, or it is the wrong size, generate it.  Otherwise just use it.
-	if err != nil || len(dat) != Mapsiz {
-		w.generateAndWrite()
-	} else {
-		copy(w.maps[:Mapsiz], dat)
-	}
+	ByteMap [Mapsiz]byte // Integer Offsets
 }
 
 // Hash()
@@ -108,7 +28,7 @@ func (w LXRHash) Hash(src []byte) []byte {
 	for i, v2 := range src {
 		// Take the byte from source (v2) and map it through the lookup table
 		// using the offset being maintained, and the rolling lastX values
-		v = w.maps[(offset^int64(v2)^last1^last2^last3)&MapMask] ^ v
+		v = w.ByteMap[(offset^int64(v2)^last1^last2^last3)&MapMask] ^ v
 
 		// Roll the set of last values, leaving lingering influences from past
 		// values.
@@ -136,14 +56,14 @@ func (w LXRHash) Hash(src []byte) []byte {
 	// Roll over all the hashes (32 int64 values)
 	for i, h := range hashes {
 		// Map each h using the offset and rolling values
-		v := w.maps[(offset^h^last1^last2^last3)&MapMask]
+		v := w.ByteMap[(offset^h^last1^last2^last3)&MapMask]
 		// Roll the last values
 		last3 = last2>>2 ^ last3
 		last2 = last1<<3 ^ last2
 		last1 = h ^ last1<<1
 
 		// Set a byte
-		bytes[i] = w.maps[(int64(v)^offset)&MapMask]
+		bytes[i] = w.ByteMap[(int64(v)^offset)&MapMask]
 
 		// combine the l values, the previous offset, and the hashes[i]
 		offset = last1<<7 ^ last2<<3 ^ last3<<9 ^ offset<<8 ^ offset>>1 ^ h
