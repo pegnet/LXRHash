@@ -3,9 +3,9 @@ package main
 import (
 	"crypto/sha256"
 	"github.com/FactomProject/factomd/common/primitives/random"
+	"github.com/pegnet/LXR256"
 	"math/rand"
 	"time"
-	"github.com/pegnet/LXR256"
 )
 
 const (
