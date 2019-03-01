@@ -4,10 +4,10 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"github.com/FactomProject/factomd/common/primitives/random"
-	"github.com/PaulSnow/LXR256"
 	"github.com/dustin/go-humanize"
 	"math/rand"
 	"time"
+	"github.com/pegnet/LXR256"
 )
 
 const (
