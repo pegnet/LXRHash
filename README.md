@@ -11,7 +11,7 @@ LXR256 was only developed this hash as a thought experiment, but which none the 
 * at the current lookup table size, LXR256 is slightly faster than Sha256, at least in my tests
 * at the current lookup table size, LXR256 would be very trivial to impliment as an ASIC, and would be very fast
 
-While this hash may be reasonable for use as PoW in mining, not nearly enough testing has been done to use as a fundamental part in cryptography or security.
+While this hash may be reasonable for use as PoW in mining on an immutable ledger that provides its own security, not nearly enough testing has been done to use as a fundamental part in cryptography or security.  For fun, it would be cool to do such testing.
 
 The actual implementation is very small.  Assuming the lookup table is fixed (w.maps), the implementation follows, but look to the source code for comments and commentary on the implementation:
 ```go
