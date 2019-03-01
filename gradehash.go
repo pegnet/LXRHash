@@ -15,9 +15,12 @@ type Gradehash struct {
 	last          []byte
 	exctime       int64
 	start         int64
+	samebytes     int
 	bitsChanged   int
 	bitsDelta     int
 	diffsrc       []byte
+	diffcnt       int
+	diffchanged   bool
 	difficulty    uint64
 	diffHash      []byte
 }
@@ -50,6 +53,9 @@ func (g *Gradehash) AddHash(src []byte, hash []byte) {
 			}
 
 		}
+		if g.last[i] == hash[i] {
+			g.samebytes++
+		}
 	}
 	g.bitsDelta += (changedhere - 128) * (changedhere - 128)
 	g.last = hash
@@ -58,7 +64,11 @@ func (g *Gradehash) AddHash(src []byte, hash []byte) {
 	if g.difficulty == 0 || (diff != 0 && diff < g.difficulty) {
 		g.difficulty = diff
 		g.diffHash = hash
-		g.diffsrc = src
+		g.diffsrc = append(g.diffsrc[:0], src...)
+		if g.difficulty > 0 {
+			g.diffcnt++
+			g.diffchanged = true
+		}
 	}
 
 }
@@ -129,21 +139,33 @@ func (g *Gradehash) Report(name string) {
 		AvgBitsChanged *= -1
 	}
 	Deltascore := float64(g.bitsDelta) / float64(g.numhashes)
-	fmt.Printf("\n%s | %5s %12s:: | max,min : %3d% 10.6f : %3d %10.6f : | score %14.2f | 128Delta:  %10.8f | Sqr(Delta) %10.6f |",
+
+	bytesSame := float64(g.samebytes) / float64(g.numhashes)
+
+	fmt.Printf("\n%s | %5s %12s:: | sameBytes %10.6f | max,min : %3d% 10.6f : %3d %10.6f : | score %14.2f | 128Delta:  %10.8f | Sqr(Delta) %10.6f |",
 		runtime,
 		name,
 		humanize.Comma(int64(g.numhashes)),
+		bytesSame,
 		maxb, maxn,
 		minb, minn,
 		score,
 		AvgBitsChanged,
 		Deltascore)
-	fmt.Printf(" \"%20x\"::%30x diff:=%16x", g.diffsrc[:16], g.diffHash[:16], g.difficulty)
+	if len(g.diffsrc) > 16 && len(g.diffHash) > 16 {
+		fmt.Printf(" \"%20x\"::%30x diff=%16x cnt=%5d  new=%5v",
+			g.diffsrc[:16],
+			g.diffHash[:16],
+			g.difficulty,
+			g.diffcnt,
+			g.diffchanged)
+	}
+	g.diffchanged = false
 	fmt.Print("  ", spent, "\n")
 }
 
 func difficulty(hash []byte) uint64 {
-	// skip start leading bytes.  If they are not zero, the difficulty is zero
+	// skip start leading bytes If they are not zero, the difficulty is zero
 	start := 2
 	for _, v := range hash[:start] {
 		if v != 0 {
@@ -159,7 +181,7 @@ func difficulty(hash []byte) uint64 {
 
 	// Calculate the difficulty
 	diff := uint64(0)
-	for i := start; i < start+8; i++ {
+	for i := start; i < start+6; i++ {
 		// Add each byte to an 8 byte difficulty, shifting the previous values left a byte each round
 		diff = as(diff, hash[i])
 	}
