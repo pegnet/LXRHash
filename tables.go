@@ -18,7 +18,7 @@ const(
 // GenerateTable
 // Build a table with a rather simplistic but with many passes, adequately randomly ordered bytes.
 // We do some straight forward bitwise math to initialize and scramble our ByteMap.
-func (w *LXRHash) GenerateTable() {
+func (w *LXRHash) GenerateTable(rounds int) {
 
 	// Our own "random" generator that really is just used to shuffle values
 	offset := firstrand
@@ -38,7 +38,7 @@ func (w *LXRHash) GenerateTable() {
 	// Now what we want to do is just mix it all up.  Take every byte in the ByteMap list, and exchange it
 	// for some other byte in the ByteMap list. Note that we do this over and over, mixing and more mixing
 	// the ByteMap, but maintaining the ratio of each byte value in the ByteMap list.
-	for loops := 0; loops < 200000; loops++ {
+	for loops := 0; loops < rounds; loops++ {
 		fmt.Println("Pass ", loops)
 		for i := range w.ByteMap {
 			j := rand(int64(i))
@@ -82,7 +82,7 @@ func (w *LXRHash) ReadTable(filename string) {
 
 	// If loading fails, or it is the wrong size, generate it.  Otherwise just use it.
 	if err != nil || len(dat) != Mapsiz {
-		w.GenerateTable()
+		w.GenerateTable(200)
 		w.WriteTable(filename)
 	} else {
 		copy(w.ByteMap[:Mapsiz], dat)
@@ -353,7 +353,9 @@ func (w *LXRHash) Init() {
 		0xc7, 0x7c, 0x1c, 0x70, 0x29, 0x9b, 0xbd, 0x67, 0x93, 0xcd, 0x3e, 0xd9, 0xcb, 0xc9, 0x58, 0x45,
 		0x73, 0x0a, 0x3f, 0xfa, 0x21, 0xf5, 0x25, 0xe2, 0x44, 0x6b, 0x4e, 0x68, 0xe4, 0x12, 0x11, 0xdb,
 	}
-
+	if len(w.ByteMap) != Mapsiz {
+		w.ReadTable("lrx256.dat")
+	}
 
 
 	copy(w.ByteMap[:],byteMap)
