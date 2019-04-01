@@ -2,14 +2,13 @@ package lxr
 
 import (
 	"fmt"
-	"os"
 	"io/ioutil"
+	"os"
 )
-
 
 // constants for building different sized lookup tables (ByteMap).  Right now, the lookup table is hard coded as
 // a 1K table, but it can be far larger.
-const(
+const (
 	firstrand = int64(0x13ef13156da2756b)
 	Mapsiz    = 0x1000
 	MapMask   = Mapsiz - 1
@@ -26,7 +25,7 @@ func (w *LXRHash) GenerateTable() {
 	rand := func(i int64) int64 {
 		b = int64(w.ByteMap[(offset&i^b)&MapMask]) ^ b<<9 ^ b>>1
 		offset = offset<<9 ^ offset>>1 ^ offset>>7 ^ i ^ int64(w.ByteMap[(b+i)&MapMask])
-		return (b^offset) & MapMask
+		return (b ^ offset) & MapMask
 	}
 
 	// Fill the ByteMap with bytes ranging from 0 to 255.  As long as Mapsize%256 == 0, this
@@ -95,7 +94,7 @@ func (w *LXRHash) ReadTable(filename string) {
 // byte values we use to map bytes to other byte values to enhance the avalanche nature of the hash
 // as well as increase the memory footprint of the hash.
 func (w *LXRHash) Init() {
-	byteMap := []byte {
+	byteMap := []byte{
 		0x30, 0x52, 0xcb, 0xe0, 0xdd, 0x03, 0x89, 0xea, 0xe9, 0xf0, 0xff, 0x73, 0x40, 0xf3, 0x7e, 0x1f,
 		0x12, 0x23, 0x3f, 0xb7, 0x13, 0xd4, 0x3d, 0xf1, 0xea, 0xda, 0xc7, 0x0e, 0xfd, 0xaf, 0x90, 0x0a,
 		0xb2, 0xcb, 0xab, 0xb0, 0x98, 0x59, 0x53, 0x51, 0xf3, 0x39, 0x6c, 0xa7, 0x43, 0xb1, 0x28, 0x16,
@@ -354,8 +353,5 @@ func (w *LXRHash) Init() {
 		0x73, 0x0a, 0x3f, 0xfa, 0x21, 0xf5, 0x25, 0xe2, 0x44, 0x6b, 0x4e, 0x68, 0xe4, 0x12, 0x11, 0xdb,
 	}
 
-
-
-	copy(w.ByteMap[:],byteMap)
+	copy(w.ByteMap[:], byteMap)
 }
-

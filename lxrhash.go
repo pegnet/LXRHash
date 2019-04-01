@@ -1,8 +1,8 @@
 package lxr
 
 const (
-	HBits     = 0x20
-	HMask     = HBits - 1
+	HBits = 0x20
+	HMask = HBits - 1
 )
 
 type LXRHash struct {
