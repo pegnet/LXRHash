@@ -7,7 +7,7 @@ import (
 
 func main() {
 	lx := new(lxr.LXRHash)
-	lx.GenerateTable()
+	lx.GenerateTable(200)
 	fmt.Println("byteMap := []byte {")
 	for i, b := range lx.ByteMap {
 		fmt.Printf("0x%02x, ", b)
