@@ -1,4 +1,4 @@
-# LXR256
+# LXRHash
 Lookup XoR hash
 
 This is a simple hash algorithm that takes advantage of a lookup table of randomized sets of bytes.  This lookup table 
