@@ -37,7 +37,7 @@ func (w *LXRHash) Init(Seed, MapSize int64, HashSize, Passes int) {
 // ReadTable
 // When a lookup table is on the disk, this will allow one to read it.
 func (w *LXRHash) ReadTable() {
-	filename := fmt.Sprintf("lrx256.%d.%d.%x.%x.dat", w.HashSize, w.Passes, w.Seed, w.MapSize)
+	filename := fmt.Sprintf("lrx%d.%d.%x.%x.dat", w.HashSize*8, w.Passes, w.Seed, w.MapSize)
 	// Try and load our byte map.
 	dat, err := ioutil.ReadFile(filename)
 

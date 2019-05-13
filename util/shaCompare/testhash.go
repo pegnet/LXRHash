@@ -221,12 +221,12 @@ func DifferentHashes(Seed, MaxSize int64, HashSize, Passes, rate int) {
 func main() {
 	Seed := int64(12341235123523)
 	MaxSize := int64(0x120000)
-	Passes := 10
+	Passes := 5
 	rate := 100000
 	_ = rate
 
 	//go BitCountTest(rate)
-	go BitChangeTest(Seed, MaxSize, Passes, 32, rate)
+	go BitChangeTest(Seed, MaxSize, 32, Passes, rate)
 	//go DifferentHashes(rate)
 	//go AddByteTest(rate)
 
