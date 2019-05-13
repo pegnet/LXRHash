@@ -83,7 +83,7 @@ The generation of the lookup table:
 const (
 	firstrand = int64(2458719153079158768)
 	firstb    = int64(4631534797403582785)
-	firstv    = int64(9523455478921636871)
+	firstv    = int64(3523455478921636871)
 )
 func (w *LXRHash) Init(Seed, MapSize int64, HashSize, Passes int) {
 	MapSize = MapSize * 256 // Ensure the mapsize is a multiple of 256

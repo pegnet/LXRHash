@@ -11,7 +11,7 @@ import (
 const (
 	firstrand = int64(2458719153079158768)
 	firstb    = int64(4631534797403582785)
-	firstv    = int64(9523455478921636871)
+	firstv    = int64(3523455478921636871)
 )
 
 // Init()
