@@ -39,8 +39,6 @@ func BitCountTest(Seed, MaxSize int64, HashSize, Passes, rate int) {
 	var g1 lxr.Gradehash
 	var g2 lxr.Gradehash
 
-	rand.Seed(13243442344225879)
-
 	wh.Init(Seed, MaxSize, int(HashSize), Passes)
 	buf := Getbuf()
 	cnt := 0
@@ -92,8 +90,6 @@ func AddByteTest(Seed, MaxSize int64, HashSize, Passes, rate int) {
 	var g1 lxr.Gradehash
 	var g2 lxr.Gradehash
 
-	rand.Seed(13243442344225879)
-
 	wh.Init(Seed, MaxSize, int(HashSize), Passes)
 	buf := Getbuf()
 	cnt := 0
@@ -135,10 +131,7 @@ func BitChangeTest(Seed, MaxSize int64, HashSize, Passes, rate int) {
 	var g1 lxr.Gradehash
 	var g2 lxr.Gradehash
 
-	rand.Seed(13243442344225879)
-
 	wh.Init(Seed, MaxSize, int(HashSize), Passes)
-	rand.Seed(13243442344225879)
 	buf := Getbuf()
 	cnt := 0
 
@@ -188,8 +181,6 @@ func DifferentHashes(Seed, MaxSize int64, HashSize, Passes, rate int) {
 	var g1 lxr.Gradehash
 	var g2 lxr.Gradehash
 
-	rand.Seed(13243442344225879)
-
 	wh.Init(Seed, MaxSize, int(HashSize), Passes)
 	buf := Getbuf()
 	for i := 1; i < 100000000000; i++ {
@@ -219,8 +210,10 @@ func DifferentHashes(Seed, MaxSize int64, HashSize, Passes, rate int) {
 }
 
 func main() {
+	rand.Seed(13243442344225879)
+
 	Seed := int64(12341235123523)
-	MaxSize := int64(0x120000)
+	MaxSize := int64(0x400000)
 	Passes := 5
 	rate := 100000
 	_ = rate
