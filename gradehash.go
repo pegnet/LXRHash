@@ -142,7 +142,7 @@ func (g *Gradehash) Report(name string) {
 
 	bytesSame := float64(g.samebytes) / float64(g.numhashes)
 
-	fmt.Printf("\n%s | %8s %12s:: | sameBytes %10.6f | max,min : %3d% 10.6f : %3d %10.6f : | score %14.2f | 128Delta:  %10.8f | Sqr(Delta) %10.6f |",
+	fmt.Printf("\n%s | %8s %12s:: | sameBytes %10.6f | max,min : %3d% 10.6f : %3d %10.6f : | score %18.2f | 128Delta:  %10.8f | Sqr(Delta) %10.6f |",
 		runtime,
 		name,
 		humanize.Comma(int64(g.numhashes)),
