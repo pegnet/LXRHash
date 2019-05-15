@@ -20,11 +20,11 @@ any change to any source byte.
 
 LRXHash was only developed this hash as a thought experiment, but which none the less has some interesting qualities.
 
-* the lookup table can be any size, so making a version that is ASIC resistant is possible
-* at lookup table sizes where processor caches work, LXRHash for 256 bits is slightly faster than Sha256, at least 
+* the lookup table can be any size, so making a version that is ASIC resistant is possible by using very big lookup tables.  Such tables blow the processor caches on CPUs and GPUs, making the speed of the hash dependent on random access of memory, not processor power.
+* at smaller lookup table sizes where processor caches work, LXRHash for 256 bits is slightly faster than Sha256, at least 
 in my tests
 * at small lookup table sizes, LXRHash would be very trivial to impliment as an ASIC, and would be very fast
-* at large lookup table sizes, LXRHash is ASIC and GPU resistent.
+* the hash is trivially altered by changing the lookup table or the seed used to generate the lookup table and initialize the hash function.
 
 While this hash may be reasonable for use as PoW in mining on an immutable ledger that provides its own security, 
 not nearly enough testing has been done to use as a fundamental part in cryptography or security.  For fun, it 
