@@ -158,7 +158,7 @@ func (g *Gradehash) Report(name string) {
 		avgChanged = fmt.Sprintf("%16s %12.8f","BitsUnchanged",halfbits*2 - AvgBitsChanged)
 	}
 
-	fmt.Printf("\n%s | %8s %12s:: | sameBytes %10.6f | max,min : %3d% 10.6f : %3d %10.6f : | score %18.10f | %s |",
+	fmt.Printf("\n%s | %8s %12s:: | sameBytes %10.6f | max,min : %3d% 10.6f : %3d %10.6f : | score %14.10f | %s |",
 		runtime,
 		name,
 		humanize.Comma(int64(g.numhashes)),
@@ -168,9 +168,9 @@ func (g *Gradehash) Report(name string) {
 		score,
 		avgChanged)
 	if len(g.diffsrc) > 16 && len(g.diffHash) > 16 {
-		fmt.Printf(" \"%20x\"::%30x | diff=%16x | cnt=%5d ",
-			g.diffsrc[:16],
-			g.diffHash[:16],
+		fmt.Printf(" \"%10x\"::%10x | diff=%12x | cnt=%5d ",
+			g.diffsrc[:5],
+			g.diffHash[:5],
 			g.difficulty,
 			g.diffcnt)
 	}
