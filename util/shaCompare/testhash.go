@@ -222,7 +222,7 @@ func main() {
 	lxrHash := lxr.LXRHash{}
 	lxrHash.Init(Seed, MaxSize, int(HashSize), Passes)
 	lxr.Gradehash{}.PrintHeader()
-	
+
 	//go BitCountTest(rate)
 	go BitChangeTest(Seed, MaxSize, HashSize, Passes, rate)
 	//go DifferentHashes(rate)

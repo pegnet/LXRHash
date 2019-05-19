@@ -26,7 +26,7 @@ type Gradehash struct {
 }
 
 func (g Gradehash) PrintHeader() {
-	fmt.Println ("Key For Data Printed while tests run:\n" +
+	fmt.Println("Key For Data Printed while tests run:\n" +
 		"Time of test\n" +
 		"| bit-xxx -- Specifies the test (bit) and the hash function used (sha is sha246, and lxr is LXRHash\n" +
 		"| sameBytes -- number of repeated bytes in the hash\n" +
@@ -42,7 +42,7 @@ func (g Gradehash) PrintHeader() {
 func (g *Gradehash) AddHash(src []byte, hash []byte) {
 
 	for len(hash) > len(g.positionSums) {
-		g.positionSums = append(g.positionSums,0)
+		g.positionSums = append(g.positionSums, 0)
 	}
 
 	if runStart == 0 {
@@ -117,7 +117,7 @@ func (g *Gradehash) Report(name string) {
 
 	freq := []float64{}
 	for _, v := range g.bytefrequency {
-		freq = append(freq, (float64(v)/float64(g.numhashes)/float64(len(g.positionSums))))
+		freq = append(freq, (float64(v) / float64(g.numhashes) / float64(len(g.positionSums))))
 	}
 	maxn := float64(freq[0])
 	maxb := 0
@@ -133,8 +133,8 @@ func (g *Gradehash) Report(name string) {
 			minn = v
 			minb = i
 		}
-		delta := 1-v*256
-		score += delta*delta
+		delta := 1 - v*256
+		score += delta * delta
 	}
 
 	spentSec := g.exctime / 1000000000
@@ -142,7 +142,7 @@ func (g *Gradehash) Report(name string) {
 	spent := fmt.Sprintf("| seconds %8d.%03d", spentSec, millisec)
 
 	// Calculate how far off from half (128) we are.  Cause that is what matters.
-	AvgBitsChanged := float64(g.bitsChanged)/float64(g.numhashes)
+	AvgBitsChanged := float64(g.bitsChanged) / float64(g.numhashes)
 
 	bytesSame := float64(g.samebytes) / float64(g.numhashes)
 
@@ -150,12 +150,12 @@ func (g *Gradehash) Report(name string) {
 		score = 100
 	}
 
-	halfbits := float64(len(g.positionSums)*8/2)
+	halfbits := float64(len(g.positionSums) * 8 / 2)
 	avgChanged := ""
 	if AvgBitsChanged > halfbits {
-		avgChanged = fmt.Sprintf("%16s %12.8f","BitsFlipped",AvgBitsChanged)
-	}else{
-		avgChanged = fmt.Sprintf("%16s %12.8f","BitsUnchanged",halfbits*2 - AvgBitsChanged)
+		avgChanged = fmt.Sprintf("%16s %12.8f", "BitsFlipped", AvgBitsChanged)
+	} else {
+		avgChanged = fmt.Sprintf("%16s %12.8f", "BitsUnchanged", halfbits*2-AvgBitsChanged)
 	}
 
 	fmt.Printf("\n%s | %8s %12s:: | sameBytes %10.6f | max,min : %3d% 10.6f : %3d %10.6f : | score %14.10f | %s |",

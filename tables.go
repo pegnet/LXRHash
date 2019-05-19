@@ -27,25 +27,26 @@ const (
 
 func (w *LXRHash) Init(Seed, MapSize int64, HashSize, Passes int) {
 
-	if MapSize & 0xFF > 0 {
-		panic(fmt.Sprintf("MapSize specified is not a multiple of 256, off by %d... Add %d to fix",MapSize & 0xFF,256-MapSize&0xff))
+	if MapSize&0xFF > 0 {
+		panic(fmt.Sprintf("MapSize specified is not a multiple of 256, off by %d... Add %d to fix", MapSize&0xFF, 256-MapSize&0xff))
 	}
 
 	w.ByteMap = make([]byte, int(MapSize))
 
-	w.HashSize = uint32(HashSize)/8
+	w.HashSize = uint32(HashSize) / 8
 	w.MapSize = MapSize
 	w.Seed = Seed
 	w.Passes = Passes
 	w.ReadTable()
 
 }
+
 // ReadTable
 // When a lookup table is on the disk, this will allow one to read it.
 func (w *LXRHash) ReadTable() {
 	filename := fmt.Sprintf("lrxhash.seed-%x.passes-%d.size-%d.dat", w.Seed, w.Passes, w.MapSize)
 	// Try and load our byte map.
-	println("Reading ByteMap Table ",filename)
+	println("Reading ByteMap Table ", filename)
 	dat, err := ioutil.ReadFile(filename)
 
 	// If loading fails, or it is the wrong size, generate it.  Otherwise just use it.
@@ -59,6 +60,7 @@ func (w *LXRHash) ReadTable() {
 		w.ByteMap = dat
 	}
 }
+
 // WriteTable
 // When playing around with the algorithm, it is nice to generate files and use them off the disk.  This
 // allows the user to do that, and save the cost of regeneration between test runs.
@@ -84,6 +86,7 @@ func (w *LXRHash) WriteTable(filename string) {
 	}
 
 }
+
 // GenerateTable
 // Build a table with a rather simplistic but with many passes, adequately randomly ordered bytes.
 // We do some straight forward bitwise math to initialize and scramble our ByteMap.
@@ -109,8 +112,8 @@ func (w *LXRHash) GenerateTable() {
 	// looping and masking works just fine.
 	println("Initalize the Table")
 	for i := range w.ByteMap {
-		if (i+1) % 1000 == 0 && time.Now().Unix()-period > 10 {
-			println(" Index ",i+1, " of ",len(w.ByteMap))
+		if (i+1)%1000 == 0 && time.Now().Unix()-period > 10 {
+			println(" Index ", i+1, " of ", len(w.ByteMap))
 			period = time.Now().Unix()
 		}
 		w.ByteMap[i] = byte(i)
@@ -124,19 +127,13 @@ func (w *LXRHash) GenerateTable() {
 		fmt.Println("Pass ", loops)
 		for i := range w.ByteMap {
 			if (i+1)%1000 == 0 && time.Now().Unix()-period > 10 {
-				fmt.Printf(" Index %10d Meg of %10d Meg -- Pass is %5.1f%% Complete\n",i/1024000,len(w.ByteMap)/1024000,100*float64(i)/float64(len(w.ByteMap)))
+				fmt.Printf(" Index %10d Meg of %10d Meg -- Pass is %5.1f%% Complete\n", i/1024000, len(w.ByteMap)/1024000, 100*float64(i)/float64(len(w.ByteMap)))
 				period = time.Now().Unix()
 			}
 
 			j := rand(int64(i))
 			w.ByteMap[i], w.ByteMap[j] = w.ByteMap[j], w.ByteMap[i]
 		}
-		fmt.Printf(" Index %10d Meg of %10d Meg -- Pass is %5.1f%% Complete\n",len(w.ByteMap)/1024000,len(w.ByteMap)/1024000,float64(100))
+		fmt.Printf(" Index %10d Meg of %10d Meg -- Pass is %5.1f%% Complete\n", len(w.ByteMap)/1024000, len(w.ByteMap)/1024000, float64(100))
 	}
 }
-
-
-
-
-
-
