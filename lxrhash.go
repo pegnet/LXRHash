@@ -15,7 +15,7 @@ type LXRHash struct {
 func (w LXRHash) Hash(src []byte) []byte {
 
 	// Keep the byte intermediate results as int64 values until reduced.
-	hashes := make([]int64,w.HashSize)
+	hashes := make([]int64, w.HashSize)
 	// The intital offset into the lookup table is the length of the input.
 	// This prevents concatenation attacks, which adds to the protection from
 	// the reduction pass.

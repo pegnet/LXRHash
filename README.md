@@ -96,8 +96,11 @@ func (w *LXRHash) Init(Seed, MapSize int64, HashSize, Passes int) {
 }
 // ReadTable
 func (w *LXRHash) ReadTable() {
-	filename := fmt.Sprintf("lrx256.%d.%d.%x.%x.dat", w.HashSize, w.Passes, w.Seed, w.MapSize)
+	filename := fmt.Sprintf("lrx%d.%d.%x.%x.dat", w.HashSize*8, w.Passes, w.Seed, w.MapSize)
+	// Try and load our byte map.
 	dat, err := ioutil.ReadFile(filename)
+
+	// If loading fails, or it is the wrong size, generate it.  Otherwise just use it.
 	if err != nil || len(dat) != int(w.MapSize) {
 		w.GenerateTable()
 		w.WriteTable(filename)

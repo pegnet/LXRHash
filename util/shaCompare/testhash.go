@@ -39,8 +39,6 @@ func BitCountTest(Seed, MaxSize int64, HashSize, Passes, rate int) {
 	var g1 lxr.Gradehash
 	var g2 lxr.Gradehash
 
-	rand.Seed(13243442344225879)
-
 	wh.Init(Seed, MaxSize, int(HashSize), Passes)
 	buf := Getbuf()
 	cnt := 0
@@ -78,7 +76,7 @@ func BitCountTest(Seed, MaxSize int64, HashSize, Passes, rate int) {
 				cnt = 0
 
 				g1.Report("cnt-sha")
-				g2.Report("cnt- wh")
+				g2.Report("cnt-lxr")
 				fmt.Print(line)
 
 			}
@@ -91,8 +89,6 @@ func AddByteTest(Seed, MaxSize int64, HashSize, Passes, rate int) {
 	var wh lxr.LXRHash
 	var g1 lxr.Gradehash
 	var g2 lxr.Gradehash
-
-	rand.Seed(13243442344225879)
 
 	wh.Init(Seed, MaxSize, int(HashSize), Passes)
 	buf := Getbuf()
@@ -121,7 +117,7 @@ func AddByteTest(Seed, MaxSize int64, HashSize, Passes, rate int) {
 				cnt = 0
 
 				g1.Report("add-sha")
-				g2.Report("add- wh")
+				g2.Report("add-lxr")
 				fmt.Print(line)
 
 			}
@@ -135,10 +131,7 @@ func BitChangeTest(Seed, MaxSize int64, HashSize, Passes, rate int) {
 	var g1 lxr.Gradehash
 	var g2 lxr.Gradehash
 
-	rand.Seed(13243442344225879)
-
 	wh.Init(Seed, MaxSize, int(HashSize), Passes)
-	rand.Seed(13243442344225879)
 	buf := Getbuf()
 	cnt := 0
 
@@ -172,7 +165,7 @@ func BitChangeTest(Seed, MaxSize int64, HashSize, Passes, rate int) {
 					cnt = 0
 
 					g1.Report("bit-sha")
-					g2.Report("bit- wh")
+					g2.Report("bit-lxr")
 					fmt.Print(line)
 
 				}
@@ -187,8 +180,6 @@ func DifferentHashes(Seed, MaxSize int64, HashSize, Passes, rate int) {
 	var wh lxr.LXRHash
 	var g1 lxr.Gradehash
 	var g2 lxr.Gradehash
-
-	rand.Seed(13243442344225879)
 
 	wh.Init(Seed, MaxSize, int(HashSize), Passes)
 	buf := Getbuf()
@@ -210,7 +201,7 @@ func DifferentHashes(Seed, MaxSize int64, HashSize, Passes, rate int) {
 		if i%rate == 0 {
 
 			g1.Report("diff-sha")
-			g2.Report("diff- wh")
+			g2.Report("diff-lxr")
 			fmt.Print(line)
 
 		}
@@ -219,14 +210,21 @@ func DifferentHashes(Seed, MaxSize int64, HashSize, Passes, rate int) {
 }
 
 func main() {
+	rand.Seed(13243442344225879)
+
 	Seed := int64(12341235123523)
-	MaxSize := int64(0x120000)
+	MaxSize := int64(102400000)
 	Passes := 5
 	rate := 100000
+	HashSize := 256
 	_ = rate
 
+	lxrHash := lxr.LXRHash{}
+	lxrHash.Init(Seed, MaxSize, int(HashSize), Passes)
+	lxr.Gradehash{}.PrintHeader()
+
 	//go BitCountTest(rate)
-	go BitChangeTest(Seed, MaxSize, 32, Passes, rate)
+	go BitChangeTest(Seed, MaxSize, HashSize, Passes, rate)
 	//go DifferentHashes(rate)
 	//go AddByteTest(rate)
 
