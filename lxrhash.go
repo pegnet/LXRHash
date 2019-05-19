@@ -28,7 +28,7 @@ func (w LXRHash) Hash(src []byte) []byte {
 	for i, v2 := range src {
 		// Take the byte from source (v2) and map it through the lookup table
 		// using the offset being maintained, and the rolling lastX values
-		idx1 := (offset^int64(v2)^last1^last2^last3)&MapMask
+		idx1 := (offset ^ int64(v2) ^ last1 ^ last2 ^ last3) & MapMask
 		v = w.ByteMap[idx1] ^ v
 
 		// Roll the set of last values, leaving lingering influences from past
@@ -57,7 +57,7 @@ func (w LXRHash) Hash(src []byte) []byte {
 	// Roll over all the hashes (32 int64 values)
 	for i, h := range hashes {
 		// Map each h using the offset and rolling values
-		idx1 := (offset^h^last1^last2^last3)&MapMask
+		idx1 := (offset ^ h ^ last1 ^ last2 ^ last3) & MapMask
 		v := w.ByteMap[idx1]
 		// Roll the last values
 		last3 = last2>>2 ^ last3
@@ -65,7 +65,7 @@ func (w LXRHash) Hash(src []byte) []byte {
 		last1 = h ^ last1<<1
 
 		// Set a byte
-		idx2 := (int64(v)^offset)&MapMask
+		idx2 := (int64(v) ^ offset) & MapMask
 		bytes[i] = w.ByteMap[idx2]
 
 		// combine the l values, the previous offset, and the hashes[i]
