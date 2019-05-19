@@ -1,20 +1,21 @@
 package lxr
 
-const (
-	HBits = 0x20
-	HMask = HBits - 1
-)
+//todo go through and make all the types unsigned, to avoid conversions.
 
 type LXRHash struct {
-	ByteMap [Mapsiz]byte // Integer Offsets
+	ByteMap  []byte // Integer Offsets
+	MapSize  int64  // Size of the translation table
+	Passes   int    // Passes to generate the rand table
+	Seed     int64  // An arbitrary number used to create the tables.
+	HashSize uint32 // Number of bytes in the hash
 }
 
 // Hash()
 // Takes a source of bytes, returns a 32 byte (256 bit) hash
 func (w LXRHash) Hash(src []byte) []byte {
 
-	// Keep the 32 byte intermediate result as int64 values until reduced.
-	var hashes [HBits]int64
+	// Keep the byte intermediate results as int64 values until reduced.
+	hashes := make([]int64, w.HashSize)
 	// The intital offset into the lookup table is the length of the input.
 	// This prevents concatenation attacks, which adds to the protection from
 	// the reduction pass.
@@ -24,26 +25,33 @@ func (w LXRHash) Hash(src []byte) []byte {
 	var last1, last2, last3 int64
 
 	v := byte(offset)
-	// Pass through the source bytes, building up lastX values, hashes[], and offset
-	for i, v2 := range src {
+	var idx1, idx2 int64
+
+	step := func(i int, v2 int64) {
+		// combine the l values, the previous offset, and the hashes[i]
+		offset = last1<<7 ^ last2<<3 ^ last3<<9 ^ offset<<8 ^ offset>>1 ^ idx2 ^ int64(v)
+
 		// Take the byte from source (v2) and map it through the lookup table
 		// using the offset being maintained, and the rolling lastX values
-		idx1 := (offset ^ int64(v2) ^ last1 ^ last2 ^ last3) & MapMask
+		idx1 = int64(uint64(idx1^offset^v2) % uint64(w.MapSize))
 		v = w.ByteMap[idx1] ^ v
 
 		// Roll the set of last values, leaving lingering influences from past
 		// values.
 		last3 = last2>>2 ^ last3
 		last2 = last1<<3 ^ last2
-		last1 = int64(v2) ^ last1<<1
+		last1 = int64(v) ^ v2 ^ last1<<1
 
+		idx2 = idx2 ^ hashes[uint32(i)%w.HashSize]
+	}
+
+	// Pass through the source bytes, building up lastX values, hashes[], and offset
+	for i, v2 := range src {
+		step(i, int64(v2))
 		// Set one of the hashes[] using the last rolling value, the input byte v2,
 		// the mapped byte v, and the previous hashes[] value
-		h := hashes[i&HMask]
-		hashes[i&HMask] = last3 ^ int64(v^v2) ^ h
+		hashes[uint32(i)%w.HashSize] = last3 ^ int64(v^v2) ^ idx2
 
-		// combine the l values, the previous offset, and the hashes[i]
-		offset = last1<<7 ^ last2<<3 ^ last3<<9 ^ offset<<8 ^ offset>>1 ^ h
 	}
 
 	// Reduction pass
@@ -52,26 +60,16 @@ func (w LXRHash) Hash(src []byte) []byte {
 	// At this point, we have HBits of state in hashes.  We need to reduce them down to a byte,
 	// And we do so by doing a bit more bitwise math, and mapping the values through our byte map.
 
-	var bytes [HBits]byte
+	bytes := make([]byte, w.HashSize)
 
 	// Roll over all the hashes (32 int64 values)
 	for i, h := range hashes {
-		// Map each h using the offset and rolling values
-		idx1 := (offset ^ h ^ last1 ^ last2 ^ last3) & MapMask
-		v := w.ByteMap[idx1]
-		// Roll the last values
-		last3 = last2>>2 ^ last3
-		last2 = last1<<3 ^ last2
-		last1 = h ^ last1<<1
-
+		step(i, h)
 		// Set a byte
-		idx2 := (int64(v) ^ offset) & MapMask
+		idx2 := int64(uint64(int64(v)^offset) % uint64(w.MapSize))
 		bytes[i] = w.ByteMap[idx2]
-
-		// combine the l values, the previous offset, and the hashes[i]
-		offset = last1<<7 ^ last2<<3 ^ last3<<9 ^ offset<<8 ^ offset>>1 ^ h
 	}
 
 	// Return the resulting hash
-	return bytes[:]
+	return bytes
 }

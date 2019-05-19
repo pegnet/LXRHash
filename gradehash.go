@@ -11,7 +11,7 @@ var runStart int64
 type Gradehash struct {
 	bytefrequency [256]int
 	numhashes     int
-	positionSums  [32]int
+	positionSums  []int
 	last          []byte
 	exctime       int64
 	start         int64
@@ -25,7 +25,25 @@ type Gradehash struct {
 	diffHash      []byte
 }
 
+func (g Gradehash) PrintHeader() {
+	fmt.Println("Key For Data Printed while tests run:\n" +
+		"Time of test\n" +
+		"| bit-xxx -- Specifies the test (bit) and the hash function used (sha is sha246, and lxr is LXRHash\n" +
+		"| sameBytes -- number of repeated bytes in the hash\n" +
+		"| max,min : -- most frequent bytes in all hashes and by how much.  Lower values are better\n" +
+		"| score -- looks at the square of the difference between the expected number of changed bytes from one hash to another.  Lower is better\n" +
+		"| BitsFlipped -- average number of bits flipped from one hash to the next.  Should be close to 1/2 the bits in a hash.\n" +
+		"| 16 bytes of source data :: 16 bytes of the hash of the data + nonce\n" +
+		"| diff = high 64 bytes of the hash as a difficulty, if the hash leads with two bytes of zeros\n" +
+		"| cnt= number of qualifying 'difficult' hashes found\n" +
+		"| seconds number of seconds in test used to calculate this hash\n")
+}
+
 func (g *Gradehash) AddHash(src []byte, hash []byte) {
+
+	for len(hash) > len(g.positionSums) {
+		g.positionSums = append(g.positionSums, 0)
+	}
 
 	if runStart == 0 {
 		runStart = time.Now().Unix()
@@ -57,7 +75,7 @@ func (g *Gradehash) AddHash(src []byte, hash []byte) {
 			g.samebytes++
 		}
 	}
-	g.bitsDelta += (changedhere - 128) * (changedhere - 128)
+	g.bitsDelta += changedhere
 	g.last = hash
 
 	diff := Difficulty(hash)
@@ -97,22 +115,16 @@ func (g *Gradehash) Report(name string) {
 		return
 	}
 
-	sum := float64(0)
+	freq := []float64{}
 	for _, v := range g.bytefrequency {
-		sum += float64(v)
+		freq = append(freq, (float64(v) / float64(g.numhashes) / float64(len(g.positionSums))))
 	}
-
-	avg := sum / 256 // Sum of all byte values generated over all hashes divided by the bytes possible
-	diffs := []float64{}
-	for _, v := range g.bytefrequency {
-		diffs = append(diffs, (float64(v) - avg))
-	}
-	maxn := float64(0)
+	maxn := float64(freq[0])
 	maxb := 0
 	minb := 0
-	minn := float64(0)
+	minn := float64(freq[0])
 	score := float64(0)
-	for i, v := range diffs {
+	for i, v := range freq {
 		if v > maxn {
 			maxn = v
 			maxb = i
@@ -121,28 +133,32 @@ func (g *Gradehash) Report(name string) {
 			minn = v
 			minb = i
 		}
-		diff := v / float64(g.numhashes) * 10000000000 // Normalize the diff for the samples we have taken, and scale up.
-		score += diff * diff                           // base the score on the square of the difference
-		// The square of the difference doesn't have validity if the diff > -1 and < 1.
+		delta := 1 - v*256
+		score += delta * delta
 	}
-	maxn = maxn / float64(g.numhashes)
-	minn = minn / float64(g.numhashes)
-	score = score / float64(g.numhashes)
 
 	spentSec := g.exctime / 1000000000
 	millisec := (g.exctime - (spentSec * 1000000000)) / 1000000
-	spent := fmt.Sprintf("seconds %8d.%03d", spentSec, millisec)
+	spent := fmt.Sprintf("| seconds %8d.%03d", spentSec, millisec)
 
 	// Calculate how far off from half (128) we are.  Cause that is what matters.
-	AvgBitsChanged := 128 - float64(g.bitsChanged)/float64(g.numhashes)
-	if AvgBitsChanged < 0 {
-		AvgBitsChanged *= -1
-	}
-	Deltascore := float64(g.bitsDelta) / float64(g.numhashes)
+	AvgBitsChanged := float64(g.bitsChanged) / float64(g.numhashes)
 
 	bytesSame := float64(g.samebytes) / float64(g.numhashes)
 
-	fmt.Printf("\n%s | %8s %12s:: | sameBytes %10.6f | max,min : %3d% 10.6f : %3d %10.6f : | score %14.2f | 128Delta:  %10.8f | Sqr(Delta) %10.6f |",
+	if score > 100 {
+		score = 100
+	}
+
+	halfbits := float64(len(g.positionSums) * 8 / 2)
+	avgChanged := ""
+	if AvgBitsChanged > halfbits {
+		avgChanged = fmt.Sprintf("%16s %12.8f", "BitsFlipped", AvgBitsChanged)
+	} else {
+		avgChanged = fmt.Sprintf("%16s %12.8f", "BitsUnchanged", halfbits*2-AvgBitsChanged)
+	}
+
+	fmt.Printf("\n%s | %8s %12s:: | sameBytes %10.6f | max,min : %3d% 10.6f : %3d %10.6f : | score %14.10f | %s |",
 		runtime,
 		name,
 		humanize.Comma(int64(g.numhashes)),
@@ -150,18 +166,16 @@ func (g *Gradehash) Report(name string) {
 		maxb, maxn,
 		minb, minn,
 		score,
-		AvgBitsChanged,
-		Deltascore)
+		avgChanged)
 	if len(g.diffsrc) > 16 && len(g.diffHash) > 16 {
-		fmt.Printf(" \"%20x\"::%30x diff=%16x cnt=%5d  new=%5v",
-			g.diffsrc[:16],
-			g.diffHash[:16],
+		fmt.Printf(" \"%10x\"::%10x | diff=%12x | cnt=%5d ",
+			g.diffsrc[:5],
+			g.diffHash[:5],
 			g.difficulty,
-			g.diffcnt,
-			g.diffchanged)
+			g.diffcnt)
 	}
 	g.diffchanged = false
-	fmt.Print("  ", spent, "\n")
+	fmt.Println("  ", spent)
 }
 
 func Difficulty(hash []byte) uint64 {
