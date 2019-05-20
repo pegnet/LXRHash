@@ -22,7 +22,7 @@ func (w LXRHash) Hash(src []byte) []byte {
 	var lastStage = int64(len(src)) ^ w.Seed ^ int64(w.HashSize)
 	// We keep a series of previous states, and roll them along through each
 	// byte of source processed.
-	var stages [5]int64
+	var stages,stages2 [10]int64
 	v := w.ByteMap[lastStage%w.MapSize]
 
 	step := func(i int, v2 int64) int64 {
@@ -33,9 +33,8 @@ func (w LXRHash) Hash(src []byte) []byte {
 			lastStage = stage ^ lastStage<<5 ^ int64(v<<ui) ^
 				int64(w.ByteMap[uint64(stage+v2)%uint64(w.MapSize)])
 		}
-
+		stages, stages2 = stages2, stages
 		v = w.ByteMap[uint64(lastStage)%uint64(w.MapSize)] ^ v
-
 		return hashes[uint32(i)%w.HashSize]
 	}
 
@@ -43,8 +42,7 @@ func (w LXRHash) Hash(src []byte) []byte {
 		step(i, int64(v2))
 		// Set one of the hashes[] using the last rolling value, the input byte v2,
 		// the mapped byte v, and the previous hashes[] value
-		hashes[uint32(i)%w.HashSize] = lastStage ^
-			int64(v^w.ByteMap[uint64(stages[0]+int64(v2))%uint64(w.MapSize)])
+		hashes[uint32(i)%w.HashSize] = lastStage ^ int64(v^w.ByteMap[uint64(stages[0]+int64(v2))%uint64(w.MapSize)])
 	}
 
 	// Reduction pass
