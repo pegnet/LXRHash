@@ -29,7 +29,7 @@ func (w LXRHash) Hash(src []byte) []byte {
 		lastStage = v2 ^ int64(i)<<16 ^ lastStage
 		for i, stage := range stages {
 			ui := uint64(i)
-			stages[i] = stage<<(8+ui) ^ stage>>(1+ui) ^ lastStage
+			stages[i] = stage<<(31^ui) ^ stage>>(7^ui) ^ lastStage
 			lastStage = stage ^ lastStage<<5
 		}
 

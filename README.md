@@ -40,39 +40,34 @@ type LXRHash struct {
 	Seed     int64  // An arbitrary number used to create the tables.
 	HashSize uint32 // Number of bytes in the hash
 }
-
+// Hash()
 func (w LXRHash) Hash(src []byte) []byte {
-	hashes := make([]int64,w.HashSize)
-	var offset = int64(len(src))
-	var last1, last2, last3 int64
-
-	v := byte(offset)
-	var idx1, idx2 int64
-
-	step := func(i int, v2 int64) {
-		offset = last1<<7 ^ last2<<3 ^ last3<<9 ^ offset<<8 ^ offset>>1 ^ idx2 ^ int64(v)
-		idx1 = int64(uint64(idx1^offset^v2) % uint64(w.MapSize))
-		v = w.ByteMap[idx1] ^ v
-		last3 = last2>>2 ^ last3
-		last2 = last1<<3 ^ last2
-		last1 = int64(v) ^ v2 ^ last1<<1
-		idx2 = idx2 ^ hashes[uint32(i)%w.HashSize]
+	hashes := make([]int64, w.HashSize)
+	var lastStage = int64(len(src)) ^ w.Seed ^ int64(w.HashSize)
+	var stages [5]int64
+	v := w.ByteMap[lastStage%w.MapSize]
+	step := func(i int, v2 int64) int64 {
+		lastStage = v2 ^ int64(i)<<16 ^ lastStage
+		for i, stage := range stages {
+			ui := uint64(i)
+			stages[i] = stage<<(8+ui) ^ stage>>(1+ui) ^ lastStage
+			lastStage = stage ^ lastStage<<5
+		}
+		v = w.ByteMap[uint64(lastStage)%uint64(w.MapSize)] ^ v
+		return hashes[uint32(i)%w.HashSize]
 	}
-
-	// Pass through the source bytes, building up lastX values, hashes[], and offset
 	for i, v2 := range src {
 		step(i, int64(v2))
-		hashes[uint32(i)%w.HashSize] = last3 ^ int64(v^v2) ^ idx2
+		hashes[uint32(i)%w.HashSize] = lastStage ^
+			int64(v^w.ByteMap[uint64(stages[0]+int64(v2))%uint64(w.MapSize)])
 	}
-
 	// Reduction pass
 	bytes := make([]byte, w.HashSize)
 	for i, h := range hashes {
 		step(i, h)
-		idx2 := int64(uint64(int64(v)^offset) % uint64(w.MapSize))
+		idx2 := int64(uint64(int64(v)^lastStage) % uint64(w.MapSize))
 		bytes[i] = w.ByteMap[idx2]
 	}
-
 	return bytes
 }
 
