@@ -51,7 +51,7 @@ func (w LXRHash) Hash(src []byte) []byte {
 		for i, stage := range stages {
 			ui := uint64(i)
 			stages[i] = stage<<(8+ui) ^ stage>>(1+ui) ^ lastStage
-			lastStage = stage ^ lastStage<<5
+			lastStage = stage ^ lastStage<<5 ^ v<<ui
 		}
 		v = w.ByteMap[uint64(lastStage)%uint64(w.MapSize)] ^ v
 		return hashes[uint32(i)%w.HashSize]
