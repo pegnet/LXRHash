@@ -210,11 +210,11 @@ func DifferentHashes(Seed, MaxSize int64, HashSize, Passes, rate int) {
 }
 
 func main() {
-	rand.Seed(13243442344225879)
+	rand.Seed(123412341234)
 
-	Seed := int64(12341235123523)
-	MaxSize := int64(10240000)
-	Passes := 20
+	Seed := int64(123412341234)
+	MaxSize := int64(102400000)
+	Passes := 5
 	rate := 100000
 	HashSize := 256
 	_ = rate
