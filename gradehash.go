@@ -137,9 +137,9 @@ func (g *Gradehash) Report(name string) {
 		score += delta * delta
 	}
 
-	spentSec := g.exctime / 1000000000
-	millisec := (g.exctime - (spentSec * 1000000000)) / 1000000
-	spent := fmt.Sprintf("| seconds %8d.%03d", spentSec, millisec)
+	spentv := float64(g.exctime)/1000000000 // In seconds, divide by a billion
+	tps := humanize.Comma(int64(float64(g.numhashes)/spentv))
+	spent := fmt.Sprintf("| seconds %8.3f | %16s tps", spentv, tps )
 
 	// Calculate how far off from half (128) we are.  Cause that is what matters.
 	AvgBitsChanged := float64(g.bitsChanged) / float64(g.numhashes)

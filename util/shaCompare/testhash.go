@@ -16,8 +16,8 @@ const (
 )
 
 func Getbuf() []byte {
-	buflen := minsample + rand.Intn(maxsample)
-	nbuf := make([]byte, buflen, buflen)
+	//buflen := minsample + rand.Intn(maxsample)
+	nbuf := make([]byte, 128, 128)
 	_, err := rand2.Reader.Read(nbuf)
 	if err != nil {
 		panic(err)
@@ -213,7 +213,7 @@ func main() {
 	rand.Seed(123412341234)
 
 	Seed := int64(123412341234)
-	MaxSize := int64(102400000)
+	MaxSize := int64(1024)
 	Passes := 5
 	rate := 100000
 	HashSize := 256
