@@ -213,7 +213,7 @@ func main() {
 	rand.Seed(123412341234)
 
 	Seed := int64(123412341234)
-	MaxSize := int64(1024)
+	MaxSize := int64(1024000000)
 	Passes := 5
 	rate := 100000
 	HashSize := 256
