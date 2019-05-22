@@ -30,7 +30,7 @@ While this hash may be reasonable for use as PoW in mining on an immutable ledge
 not nearly enough testing has been done to use as a fundamental part in cryptography or security.  For fun, it 
 would be cool to do such testing.
 
-The actual implementation is very small, and see the code for the most accurate source. The code is presented here without comments to illustrate its small size (Hash() is ~ 26 lines of go) :
+The actual implementation is very small, and see the code for the most accurate source. The code is presented here without comments to illustrate its small size (Hash() is ~ 29 lines of go) :
 ```go
 type LXRHash struct {
 	ByteMap     []byte // Integer Offsets
@@ -40,7 +40,7 @@ type LXRHash struct {
 	Seed        uint64 // An arbitrary number used to create the tables.
 	HashSize    uint64 // Number of bytes in the hash
 }
-func (w LXRHash) Hash(src []byte) []byte {
+unc (w LXRHash) Hash(src []byte) []byte {
 	hashes := make([]uint64, w.HashSize)
 	var lastStage = w.Seed
 	var stages, stages2 [11]uint64
@@ -70,92 +70,5 @@ func (w LXRHash) Hash(src []byte) []byte {
 	}
 	return bytes
 }
-
-
 ```
 
-The generation of the lookup table:
-```go
-const (
-	firstrand = uint64(2458719153079158768)
-	firstb    = uint64(4631534797403582785)
-	firstv    = uint64(3523455478921636871)
-)
-func (w *LXRHash) Init(Seed, MapSizeBits, HashSize, Passes uint64) {
-	if MapSizeBits < 8 {
-		panic(fmt.Sprintf("Bad Map Size in Bits.  Must be between 8 and 34 bits, was %d", MapSizeBits))
-	}
-	MapSize := uint64(1) << MapSizeBits
-	w.ByteMap = make([]byte, int(MapSize))
-	w.HashSize = (HashSize + 7) / 8
-	w.MapSize = MapSize
-	w.MapSizeBits = MapSizeBits
-	w.Seed = Seed
-	w.Passes = Passes
-	w.ReadTable()
-}
-func (w *LXRHash) ReadTable() {
-	filename := fmt.Sprintf("lrxhash.seed-%x.passes-%d.size-%d.dat", w.Seed, w.Passes, w.MapSizeBits)
-	println("Reading ByteMap Table ", filename)
-	dat, err := ioutil.ReadFile(filename)
-	if err != nil || len(dat) != int(w.MapSize) {
-		println("Table not found, Generating ByteMap Table ")
-		w.GenerateTable()
-		fmt.Println("writeing ByteMap Table ")
-		w.WriteTable(filename)
-		fmt.Println("Done")
-	} else {
-		w.ByteMap = dat
-	}
-}
-func (w *LXRHash) WriteTable(filename string) {
-	os.Remove(filename)
-	fo, err := os.Create(filename)
-	if err != nil {
-		panic(err)
-	}
-	defer func() {
-		if err := fo.Close(); err != nil {
-			panic(err)
-		}
-	}()
-	if _, err := fo.Write(w.ByteMap[:]); err != nil {
-		panic(err)
-	}
-}
-func (w *LXRHash) GenerateTable() {
-	offset := w.Seed ^ firstrand
-	b := w.Seed ^ firstb
-	v := firstv
-	MapMask := w.MapSize - 1
-	rand := func(i uint64) int64 {
-		offset = offset<<9 ^ offset>>1 ^ offset>>7 ^ b
-		v = uint64(w.ByteMap[(offset^b)&MapMask]) ^ v<<8 ^ v>>1
-		b = v<<7 ^ v<<13 ^ v<<33 ^ v<<52 ^ b<<9 ^ b>>1
-		return int64(uint64(offset) % uint64(w.MapSize))
-	}
-	start := time.Now().Unix()
-	period := start
-	println("Initalize the Table")
-	for i := range w.ByteMap {
-		if (i+1)%1000 == 0 && time.Now().Unix()-period > 10 {
-			println(" Index ", i+1, " of ", len(w.ByteMap))
-			period = time.Now().Unix()
-		}
-		w.ByteMap[i] = byte(i)
-	}
-	println("Shuffling the Table")
-	for loops := 0; loops < int(w.Passes); loops++ {
-		fmt.Println("Pass ", loops)
-		for i := range w.ByteMap {
-			if (i+1)%1000 == 0 && time.Now().Unix()-period > 10 {
-				fmt.Printf(" Index %10d Meg of %10d Meg -- Pass is %5.1f%% Complete\n", i/1024000, len(w.ByteMap)/1024000, 100*float64(i)/float64(len(w.ByteMap)))
-				period = time.Now().Unix()
-			}
-			j := rand(uint64(i))
-			w.ByteMap[i], w.ByteMap[j] = w.ByteMap[j], w.ByteMap[i]
-		}
-		fmt.Printf(" Index %10d Meg of %10d Meg -- Pass is %5.1f%% Complete\n", len(w.ByteMap)/1024000, len(w.ByteMap)/1024000, float64(100))
-	}
-}
-```
