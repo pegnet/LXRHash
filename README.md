@@ -40,32 +40,34 @@ type LXRHash struct {
 	Seed     int64  // An arbitrary number used to create the tables.
 	HashSize uint32 // Number of bytes in the hash
 }
-// Hash()
 func (w LXRHash) Hash(src []byte) []byte {
 	hashes := make([]int64, w.HashSize)
-	var lastStage = int64(len(src)) ^ w.Seed ^ int64(w.HashSize)
-	var stages [5]int64
-	v := w.ByteMap[lastStage%w.MapSize]
+	var lastStage = w.Seed
+	var stages,stages2 [3]int64
 	step := func(i int, v2 int64) int64 {
-		lastStage = v2 ^ int64(i)<<16 ^ lastStage
-		for i, stage := range stages {
-			ui := uint64(i)
-			stages[i] = stage<<(8+ui) ^ stage>>(1+ui) ^ lastStage
-			lastStage = stage ^ lastStage<<5 ^ int64(v<<ui)
+		lastStage = v2 ^ int64(i)<<16 ^ lastStage << 7 ^ lastStage >> 1
+		stages[0]=stages[0]^lastStage ^ v2 ^ int64(w.ByteMap[uint64(lastStage^v2<<9)%uint64(w.MapSize)])<<4
+		for i:=len(stages)-1; i>=0; i--{
+			stage := stages[i]
+			if i > 0 {
+				stages[i] = stages[i-1]<<7 ^ stages[i-1]>>1 ^ stage ^
+					 int64(w.ByteMap[uint64(stage^v2<<9)%uint64(w.MapSize)])<<16
+				lastStage = stage ^ lastStage<<11 ^ lastStage>>1
+			}
 		}
-		v = w.ByteMap[uint64(lastStage)%uint64(w.MapSize)] ^ v
+		stages, stages2 = stages2, stages
 		return hashes[uint32(i)%w.HashSize]
 	}
 	for i, v2 := range src {
 		step(i, int64(v2))
-		hashes[uint32(i)%w.HashSize] = lastStage ^
-			int64(v^w.ByteMap[uint64(stages[0]+int64(v2))%uint64(w.MapSize)])
+		hash := hashes[uint32(i)%w.HashSize]
+		hashes[uint32(i)%w.HashSize] = lastStage ^ hash << 21 ^ hash >> 1
 	}
-	// Reduction pass
 	bytes := make([]byte, w.HashSize)
 	for i, h := range hashes {
 		step(i, h)
-		idx2 := int64(uint64(int64(v)^lastStage) % uint64(w.MapSize))
+		// Set a byte
+		idx2 := int64(uint64(int64(stages[0])^lastStage) % uint64(w.MapSize))
 		bytes[i] = w.ByteMap[idx2]
 	}
 	return bytes
@@ -92,10 +94,7 @@ func (w *LXRHash) Init(Seed, MapSize int64, HashSize, Passes int) {
 // ReadTable
 func (w *LXRHash) ReadTable() {
 	filename := fmt.Sprintf("lrx%d.%d.%x.%x.dat", w.HashSize*8, w.Passes, w.Seed, w.MapSize)
-	// Try and load our byte map.
 	dat, err := ioutil.ReadFile(filename)
-
-	// If loading fails, or it is the wrong size, generate it.  Otherwise just use it.
 	if err != nil || len(dat) != int(w.MapSize) {
 		w.GenerateTable()
 		w.WriteTable(filename)

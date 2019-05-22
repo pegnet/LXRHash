@@ -1,7 +1,5 @@
 package lxr
 
-//todo go through and make all the types unsigned, to avoid conversions.
-
 type LXRHash struct {
 	ByteMap  []byte // Integer Offsets
 	MapSize  int64  // Size of the translation table
@@ -10,12 +8,7 @@ type LXRHash struct {
 	HashSize uint32 // Number of bytes in the hash
 }
 
-func (w LXRHash) Hash(src []byte) [] byte {
-	return w.Hash1(src)
-}
-
-
-func (w LXRHash) Hash1(src []byte) []byte {
+func (w LXRHash) Hash(src []byte) []byte {
 
 	// Keep the byte intermediate results as int64 values until reduced.
 	hashes := make([]int64, w.HashSize)
@@ -47,8 +40,7 @@ func (w LXRHash) Hash1(src []byte) []byte {
 		// Set one of the hashes[] using the last rolling value, the input byte v2,
 		// the mapped byte bytemap, and the previous hashes[] value
 		hash := hashes[uint32(i)%w.HashSize]
-		hashes[uint32(i)%w.HashSize] = lastStage ^ hash<<32 ^ hash>>3 ^
-			int64(w.ByteMap[uint64(lastStage ^ int64(v2))%uint64(w.MapSize)])<<3
+		hashes[uint32(i)%w.HashSize] = lastStage ^ hash << 21 ^ hash >> 1
 	}
 
 	// Reduction pass
