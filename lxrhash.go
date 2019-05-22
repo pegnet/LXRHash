@@ -33,7 +33,8 @@ func (w LXRHash) Hash1(src []byte) []byte {
 		for i:=len(stages)-1; i>=0; i--{
 			stage := stages[i]
 			if i > 0 {
-				stages[i] = stages[i-1]<<7 ^ stages[i-1]>>1 ^ stage
+				stages[i] = stages[i-1]<<7 ^ stages[i-1]>>1 ^ stage ^
+					 int64(w.ByteMap[uint64(stage^v2<<9)%uint64(w.MapSize)])<<16
 				lastStage = stage ^ lastStage<<11 ^ lastStage>>1
 			}
 		}
