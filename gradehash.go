@@ -108,8 +108,6 @@ func (g *Gradehash) Report(name string) {
 	mins := secs / 60
 	secs = secs - mins*60
 
-	runtime := fmt.Sprintf("%4d:%02d:%02d", hrs, mins, secs)
-
 	if g.numhashes == 0 {
 		fmt.Println("no report data")
 		return
@@ -137,9 +135,9 @@ func (g *Gradehash) Report(name string) {
 		score += delta * delta
 	}
 
-	spentv := float64(g.exctime)/1000000000 // In seconds, divide by a billion
-	tps := humanize.Comma(int64(float64(g.numhashes)/spentv))
-	spent := fmt.Sprintf("| %16s tps", tps )
+	spentv := float64(g.exctime) / 1000000000 // In seconds, divide by a billion
+	tps := humanize.Comma(int64(float64(g.numhashes) / spentv))
+	spent := fmt.Sprintf("| %16s tps", tps)
 
 	// Calculate how far off from half (128) we are.  Cause that is what matters.
 	AvgBitsChanged := float64(g.bitsChanged) / float64(g.numhashes)
@@ -158,11 +156,10 @@ func (g *Gradehash) Report(name string) {
 		avgChanged = fmt.Sprintf("%16s %12.8f", "BitsUnchanged", halfbits*2-AvgBitsChanged)
 	}
 
-	fmt.Printf("\n%s | %8s %12s:: | sameBytes %10.6f | max,min : %3d% 10.6f : %3d %10.6f : | score %14.10f | %s |",
-		runtime,
+	fmt.Printf("\n%8s %12s:: | SB %10.6f | max,min : %3d %10.6f : %3d %10.6f : | score %14.10f | %s |",
 		name,
 		humanize.Comma(int64(g.numhashes)),
-		bytesSame,
+		1/256-bytesSame,
 		maxb, maxn,
 		minb, minn,
 		score,

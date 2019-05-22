@@ -1,46 +1,47 @@
 package lxr
 
 type LXRHash struct {
-	ByteMap  []byte // Integer Offsets
-	MapSize  int64  // Size of the translation table
-	Passes   int    // Passes to generate the rand table
-	Seed     int64  // An arbitrary number used to create the tables.
-	HashSize uint32 // Number of bytes in the hash
+	ByteMap     []byte // Integer Offsets
+	MapSize     uint64 // Size of the translation table
+	MapSizeBits uint64 // Size of the ByteMap in Bits
+	Passes      uint64 // Passes to generate the rand table
+	Seed        uint64 // An arbitrary number used to create the tables.
+	HashSize    uint64 // Number of bytes in the hash
 }
 
 func (w LXRHash) Hash(src []byte) []byte {
 
 	// Keep the byte intermediate results as int64 values until reduced.
-	hashes := make([]int64, w.HashSize)
-	// The intital offset into the lookup table is the length of the input.
+	hashes := make([]uint64, w.HashSize)
+	// The initial offset into the lookup table is the length of the input.
 	// This prevents concatenation attacks, which adds to the protection from
 	// the reduction pass.
 	var lastStage = w.Seed
 	// We keep a series of previous states, and roll them along through each
 	// byte of source processed.
-	var stages,stages2 [3]int64
+	var stages, stages2 [11]uint64
+	MapMask := w.MapSize - 1
 
-	step := func(i int, v2 int64) int64 {
-		lastStage = v2 ^ int64(i)<<16 ^ lastStage << 7 ^ lastStage >> 1
-		stages[0]=stages[0]^lastStage ^ v2 ^ int64(w.ByteMap[uint64(lastStage^v2<<9)%uint64(w.MapSize)])<<4
-		for i:=len(stages)-1; i>=0; i--{
+	// Define a function to move the state by one byte.
+	step := func(i uint64, v2 uint64) {
+		stages[0] = stages[0] ^ lastStage ^ v2 ^ uint64(w.ByteMap[(lastStage^v2<<9)%w.MapSize])<<4
+		for i := len(stages) - 1; i >= 0; i-- {
 			stage := stages[i]
 			if i > 0 {
-				stages[i] = stages[i-1]<<7 ^ stages[i-1]>>1 ^ stage ^
-					 int64(w.ByteMap[uint64(stage^v2<<9)%uint64(w.MapSize)])<<16
+				stages[i] = stages[i-1]<<7 ^ stages[i-1]>>1 ^ stage ^ uint64(w.ByteMap[(stage^v2<<9)&MapMask])<<16
 				lastStage = stage ^ lastStage<<11 ^ lastStage>>1
 			}
 		}
 		stages, stages2 = stages2, stages
-		return hashes[uint32(i)%w.HashSize]
 	}
 
 	for i, v2 := range src {
-		step(i, int64(v2))
+		idx := uint64(i)
+		step(idx, uint64(v2))
 		// Set one of the hashes[] using the last rolling value, the input byte v2,
 		// the mapped byte bytemap, and the previous hashes[] value
-		hash := hashes[uint32(i)%w.HashSize]
-		hashes[uint32(i)%w.HashSize] = lastStage ^ hash << 21 ^ hash >> 1
+		hash := hashes[idx%w.HashSize]
+		hashes[idx%w.HashSize] = lastStage ^ hash<<21 ^ hash>>1
 	}
 
 	// Reduction pass
@@ -50,67 +51,11 @@ func (w LXRHash) Hash(src []byte) []byte {
 	// And we do so by doing a bit more bitwise math, and mapping the values through our byte map.
 
 	bytes := make([]byte, w.HashSize)
-
 	// Roll over all the hashes (32 int64 values)
 	for i, h := range hashes {
-		step(i, h)
+		step(uint64(i), h)
 		// Set a byte
-		idx2 := int64(uint64(int64(stages[0])^lastStage) % uint64(w.MapSize))
-		bytes[i] = w.ByteMap[idx2]
-	}
-
-	// Return the resulting hash
-	return bytes
-}
-
-// Hash2()
-// Takes a source of bytes, returns a 32 byte (256 bit) hash
-func (w LXRHash) Hash2(src []byte) []byte {
-
-	// Keep the byte intermediate results as int64 values until reduced.
-	hashes := make([]int64, w.HashSize)
-	// The intital offset into the lookup table is the length of the input.
-	// This prevents concatenation attacks, which adds to the protection from
-	// the reduction pass.
-	var lastStage = int64(len(src)) ^ w.Seed ^ int64(w.HashSize)
-	// We keep a series of previous states, and roll them along through each
-	// byte of source processed.
-	var stages,stages2 [11]int64
-	bytemap := w.ByteMap[lastStage%w.MapSize]
-
-	step := func(i int, v2 int64) int64 {
-		lastStage = v2 ^ int64(i)<<16 ^ lastStage
-		for i, stage := range stages {
-			ui := uint64(i)
-			stages[i] = stage<<(31^ui) ^ stage>>(7^ui) ^ lastStage
-			lastStage = stage ^ lastStage<<5 ^ int64(bytemap<<ui) ^
-				int64(w.ByteMap[uint64(stages[i]^v2<<9)%uint64(w.MapSize)])
-		}
-		stages, stages2 = stages2, stages
-		bytemap = w.ByteMap[uint64(lastStage^int64(bytemap))%uint64(w.MapSize)]
-		return hashes[uint32(i)%w.HashSize]
-	}
-
-	for i, v2 := range src {
-		step(i, int64(v2))
-		// Set one of the hashes[] using the last rolling value, the input byte v2,
-		// the mapped byte bytemap, and the previous hashes[] value
-		hashes[uint32(i)%w.HashSize] = lastStage ^ int64(bytemap^w.ByteMap[uint64(stages[0]+int64(v2))%uint64(w.MapSize)])
-	}
-
-	// Reduction pass
-	// Done by Interating over hashes[] to produce the bytes[] hash
-	//
-	// At this point, we have HBits of state in hashes.  We need to reduce them down to a byte,
-	// And we do so by doing a bit more bitwise math, and mapping the values through our byte map.
-
-	bytes := make([]byte, w.HashSize)
-
-	// Roll over all the hashes (32 int64 values)
-	for i, h := range hashes {
-		step(i, h)
-		// Set a byte
-		idx2 := int64(uint64(int64(bytemap)^lastStage) % uint64(w.MapSize))
+		idx2 := (stages[0] ^ lastStage) & MapMask
 		bytes[i] = w.ByteMap[idx2]
 	}
 
