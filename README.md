@@ -34,40 +34,43 @@ The actual implementation is very small.  Assuming the lookup table is fixed (w.
 but look to the source code for comments and commentary on the implementation:
 ```go
 type LXRHash struct {
-	ByteMap  []byte // Integer Offsets
-	MapSize  int64  // Size of the translation table
-	Passes   int    // Passes to generate the rand table
-	Seed     int64  // An arbitrary number used to create the tables.
-	HashSize uint32 // Number of bytes in the hash
+	ByteMap     []byte // Integer Offsets
+	MapSize     uint64 // Size of the translation table
+	MapSizeBits uint64 // Size of the ByteMap in Bits
+	Passes      uint64 // Passes to generate the rand table
+	Seed        uint64 // An arbitrary number used to create the tables.
+	HashSize    uint64 // Number of bytes in the hash
 }
+// Hash() A Lookup XoR Hash (LXRHash)
 func (w LXRHash) Hash(src []byte) []byte {
-	hashes := make([]int64, w.HashSize)
+	hashes := make([]uint64, w.HashSize)
 	var lastStage = w.Seed
-	var stages,stages2 [3]int64
-	step := func(i int, v2 int64) int64 {
-		lastStage = v2 ^ int64(i)<<16 ^ lastStage << 7 ^ lastStage >> 1
-		stages[0]=stages[0]^lastStage ^ v2 ^ int64(w.ByteMap[uint64(lastStage^v2<<9)%uint64(w.MapSize)])<<4
-		for i:=len(stages)-1; i>=0; i--{
+	var stages, stages2 [11]uint64
+	MapMask := w.MapSize - 1
+	// Define a function to move the state by one byte.
+	step := func(i uint64, v2 uint64) {
+		stages[0] = stages[0] ^ lastStage ^ v2 ^ uint64(w.ByteMap[(lastStage^v2<<9)%w.MapSize])<<4
+		for i := len(stages) - 1; i >= 0; i-- {
 			stage := stages[i]
 			if i > 0 {
-				stages[i] = stages[i-1]<<7 ^ stages[i-1]>>1 ^ stage ^
-					 int64(w.ByteMap[uint64(stage^v2<<9)%uint64(w.MapSize)])<<16
+				stages[i] = stages[i-1]<<7 ^ stages[i-1]>>1 ^ stage ^ uint64(w.ByteMap[(stage^v2<<9)&MapMask])<<16
 				lastStage = stage ^ lastStage<<11 ^ lastStage>>1
 			}
 		}
 		stages, stages2 = stages2, stages
-		return hashes[uint32(i)%w.HashSize]
 	}
+    // Make one pass through the data
 	for i, v2 := range src {
-		step(i, int64(v2))
-		hash := hashes[uint32(i)%w.HashSize]
-		hashes[uint32(i)%w.HashSize] = lastStage ^ hash << 21 ^ hash >> 1
+		idx := uint64(i)
+		step(idx, uint64(v2))
+		hash := hashes[idx%w.HashSize]
+		hashes[idx%w.HashSize] = lastStage ^ hash<<21 ^ hash>>1
 	}
+	// Reduction pass
 	bytes := make([]byte, w.HashSize)
 	for i, h := range hashes {
-		step(i, h)
-		// Set a byte
-		idx2 := int64(uint64(int64(stages[0])^lastStage) % uint64(w.MapSize))
+		step(uint64(i), h)
+		idx2 := (stages[0] ^ lastStage) & MapMask
 		bytes[i] = w.ByteMap[idx2]
 	}
 	return bytes

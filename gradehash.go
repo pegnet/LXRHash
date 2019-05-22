@@ -29,7 +29,7 @@ func (g Gradehash) PrintHeader() {
 	fmt.Println("Key For Data Printed while tests run:\n" +
 		"Time of test\n" +
 		"| bit-xxx -- Specifies the test (bit) and the hash function used (sha is sha246, and lxr is LXRHash\n" +
-		"| sameBytes -- number of repeated bytes in the hash\n" +
+		"| SB -- Difference of the expected Avergae number of repeated bytes, and what the test produced. \n" +
 		"| max,min : -- most frequent bytes in all hashes and by how much.  Lower values are better\n" +
 		"| score -- looks at the square of the difference between the expected number of changed bytes from one hash to another.  Lower is better\n" +
 		"| BitsFlipped -- average number of bits flipped from one hash to the next.  Should be close to 1/2 the bits in a hash.\n" +
@@ -159,7 +159,7 @@ func (g *Gradehash) Report(name string) {
 	fmt.Printf("\n%8s %12s:: | SB %10.6f | max,min : %3d %10.6f : %3d %10.6f : | score %14.10f | %s |",
 		name,
 		humanize.Comma(int64(g.numhashes)),
-		1/256-bytesSame,
+		1.0/256*float64(len(g.diffHash))-bytesSame,
 		maxb, maxn,
 		minb, minn,
 		score,
