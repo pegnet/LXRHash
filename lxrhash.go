@@ -29,8 +29,8 @@ func (w LXRHash) Hash(src []byte) []byte {
 			stage := stages[i]
 			if i > 0 {
 				stages[i] = stages[i-1]<<7 ^ stages[i-1]>>1 ^ stage ^ uint64(w.ByteMap[(stage^v2<<9)&MapMask])<<16
-				lastStage = stage ^ lastStage<<11 ^ lastStage>>1
 			}
+			lastStage = stage<<32 ^ lastStage<<11 ^ lastStage>>1
 		}
 		stages, stages2 = stages2, stages
 	}
