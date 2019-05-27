@@ -13,6 +13,8 @@ const (
 	line = "--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------"
 )
 
+var lxrhash lxr.LXRHash
+
 func Getbuf() []byte {
 	//buflen := minsample + rand.Intn(maxsample)
 	nbuf := make([]byte, 1024, 1024)
@@ -32,15 +34,14 @@ func Getbuf32() []byte {
 	return nbuf
 }
 
-func BitCountTest(Seed, MaxSizeBits, HashSize, Passes, rate uint64) {
-	var wh lxr.LXRHash
+func BitCountTest() {
 	var g1 lxr.Gradehash
 	var g2 lxr.Gradehash
 
-	wh.Init(Seed, MaxSizeBits, HashSize, Passes)
 	buf := Getbuf()
 	cnt := 0
 
+	last := time.Now().Unix()
 	for x := 0; x < 100000000000; x++ {
 		// Get a new buffer of data.
 		buf = Getbuf()
@@ -66,15 +67,16 @@ func BitCountTest(Seed, MaxSizeBits, HashSize, Passes, rate uint64) {
 			g1.AddHash(buf, sv[:])
 
 			g2.Start()
-			wv := wh.Hash(buf)
+			wv := lxrhash.Hash(buf)
 			g2.Stop()
 			g2.AddHash(buf, wv)
 
-			if cnt > int(rate) {
+			if cnt > 1000 && time.Now().Unix()-last > 4  {
+				last = time.Now().Unix()
 				cnt = 0
 
-				g1.Report("cnt-sha")
-				g2.Report("cnt-lxr")
+				g1.Report("bit-sha")
+				g2.Report("bit-lxr")
 				fmt.Print(line)
 
 			}
@@ -83,15 +85,13 @@ func BitCountTest(Seed, MaxSizeBits, HashSize, Passes, rate uint64) {
 	}
 }
 
-func AddByteTest(Seed, MaxSizeBits, HashSize, Passes, rate uint64) {
-	var wh lxr.LXRHash
+func AddByteTest() {
 	var g1 lxr.Gradehash
 	var g2 lxr.Gradehash
 
-	wh.Init(Seed, MaxSizeBits, HashSize, Passes)
 	buf := Getbuf()
 	cnt := 0
-
+	last := time.Now().Unix()
 	for x := 0; x < 100000000000; x++ {
 		// Get a new buffer of data.
 		buf = []byte{byte(x)}
@@ -105,17 +105,18 @@ func AddByteTest(Seed, MaxSizeBits, HashSize, Passes, rate uint64) {
 			g1.AddHash(buf, sv[:])
 
 			g2.Start()
-			wv := wh.Hash(buf)
+			wv := lxrhash.Hash(buf)
 			g2.Stop()
 			g2.AddHash(buf, wv)
 
 			buf = append(buf, byte(rand.Intn(255)))
 
-			if cnt > int(rate) {
+			if cnt > 1000 && time.Now().Unix()-last > 4  {
+				last = time.Now().Unix()
 				cnt = 0
 
-				g1.Report("add-sha")
-				g2.Report("add-lxr")
+				g1.Report("bit-sha")
+				g2.Report("bit-lxr")
 				fmt.Print(line)
 
 			}
@@ -124,15 +125,14 @@ func AddByteTest(Seed, MaxSizeBits, HashSize, Passes, rate uint64) {
 	}
 }
 
-func BitChangeTest(Seed, MaxSizeBits, HashSize, Passes, rate uint64) {
-	var wh lxr.LXRHash
+func BitChangeTest() {
 	var g1 lxr.Gradehash
 	var g2 lxr.Gradehash
 
-	wh.Init(Seed, MaxSizeBits, HashSize, Passes)
 	buf := Getbuf()
 	cnt := 0
 
+	last := time.Now().Unix()
 	for x := 0; x < 100000000000; x++ {
 		// Get a new buffer of data.
 		buf = Getbuf()
@@ -152,14 +152,15 @@ func BitChangeTest(Seed, MaxSizeBits, HashSize, Passes, rate uint64) {
 				g1.AddHash(buf, sv[:])
 
 				g2.Start()
-				wv := wh.Hash(buf)
+				wv := lxrhash.Hash(buf)
 				g2.Stop()
 				g2.AddHash(buf, wv)
 
 				// flipping a bit again repairs it.
 				buf[i] = buf[i] ^ bit_to_flip
 
-				if cnt > int(rate) {
+				if cnt > 1000 && time.Now().Unix()-last > 4  {
+					last = time.Now().Unix()
 					cnt = 0
 
 					g1.Report("bit-sha")
@@ -174,13 +175,14 @@ func BitChangeTest(Seed, MaxSizeBits, HashSize, Passes, rate uint64) {
 	}
 }
 
-func DifferentHashes(Seed, MaxSizeBits, HashSize, Passes, rate uint64) {
-	var wh lxr.LXRHash
+func DifferentHashes() {
 	var g1 lxr.Gradehash
 	var g2 lxr.Gradehash
 
-	wh.Init(Seed, MaxSizeBits, HashSize, Passes)
 	buf := Getbuf()
+
+	last := time.Now().Unix()
+	cnt :=0
 	for i := 1; i < 100000000000; i++ {
 
 		// Get a new buffer of data.
@@ -192,36 +194,54 @@ func DifferentHashes(Seed, MaxSizeBits, HashSize, Passes, rate uint64) {
 		g1.AddHash(buf, sv[:])
 
 		g2.Start()
-		wv := wh.Hash(buf)
+		wv := lxrhash.Hash(buf)
 		g2.Stop()
 		g2.AddHash(buf, wv)
+		cnt++
+		if cnt > 1000 && time.Now().Unix()-last > 4  {
+			last = time.Now().Unix()
+			cnt = 0
 
-		if uint64(i)%rate == 0 {
-
-			g1.Report("diff-sha")
-			g2.Report("diff-lxr")
+			g1.Report("bit-sha")
+			g2.Report("bit-lxr")
 			fmt.Print(line)
 
 		}
-
 	}
 }
+
+// GenAll()
+// Generate all the map files for a particular seed, and number of passes
+func GenAll(Seed, Passes uint64) {
+
+	for i:= uint64(8); i < 33; i++ {
+		meg := float64(uint64(1)<<i)/1000000
+		fmt.Printf("Processing Map of %12.4f MB, %d bits\n",meg, i)
+		lxrHash := lxr.LXRHash{}
+		lxrHash.Init(Seed, i, 255, Passes)
+	}
+}
+
+
 
 func main() {
 	rand.Seed(123412341234)
 
-	Seed := uint64(123412341234)
-	MaxSizeBits := uint64(31)
+	Seed := uint64(46898902133)
+	MaxSizeBits := uint64(32)
 	Passes := uint64(5)
-	rate := uint64(100000)
 	HashSize := uint64(256)
 
-	lxrHash := lxr.LXRHash{}
-	lxrHash.Init(Seed, MaxSizeBits, HashSize, Passes)
+	lxrhash.Init(Seed, MaxSizeBits, HashSize, Passes)
+
+	//GenAll(Seed,Passes)
+
 	lxr.Gradehash{}.PrintHeader()
 
 	//go BitCountTest(rate)
-	go BitChangeTest(Seed, MaxSizeBits, HashSize, Passes, rate)
+	go BitChangeTest()
+
+
 	//go DifferentHashes(rate)
 	//go AddByteTest(rate)
 

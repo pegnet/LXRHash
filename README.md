@@ -9,7 +9,9 @@ All parameters are specified.  The size of the lookup table (in numbers of 256 b
 the lookup table, the number of rounds to shuffle the table, and the size of the resulting hash.
 
 This hash function has some interesting qualities.  Very large lookup tables will blow the cache on pretty much any 
-processor or computer architecture. The number of bytes in the resulting hash can be increased for more security, without any more processing time.  Note, while this approach *can* be fast, this implemenation isn't.  The use case is aimed at Proof of Work (PoW), not cryptographic hashing.
+processor or computer architecture. The number of bytes in the resulting hash can be increased for more security, 
+without any more processing time.  Note, while this approach *can* be fast, this implemenation isn't.  The use case 
+is aimed at Proof of Work (PoW), not cryptographic hashing.
   
 The lookup 
 -------
@@ -40,35 +42,36 @@ type LXRHash struct {
 	Seed        uint64 // An arbitrary number used to create the tables.
 	HashSize    uint64 // Number of bytes in the hash
 }
-func (w LXRHash) Hash(src []byte) []byte {
-	hashes := make([]uint64, w.HashSize)
-	var lastStage = w.Seed
-	var stages, stages2 [11]uint64
-	MapMask := w.MapSize - 1
+func (lx LXRHash) Hash(src []byte) []byte {
+	hs := make([]uint64, lx.HashSize)
+	var as = lx.Seed
+	var s, s2 [11]uint64
+	mk := lx.MapSize - 1
 	step := func(i uint64, v2 uint64) {
-		stages[0] = stages[0] ^ lastStage ^ v2 ^ uint64(w.ByteMap[(lastStage^v2<<9)%w.MapSize])<<4
-		for i := len(stages) - 1; i >= 0; i-- {
-			stage := stages[i]
+		s[0] = s[0] ^ as ^ v2 ^ uint64(lx.ByteMap[(as^v2<<9)&mk])<<4
+		for i := len(s) - 1; i >= 0; i-- {
 			if i > 0 {
-				stages[i] = stages[i-1]<<7 ^ stages[i-1]>>1 ^ stage ^ uint64(w.ByteMap[(stage^v2<<9)&MapMask])<<16
+				s[i] = s[i-1]<<7 ^ s[i-1]>>1 ^ s[i]<<17 ^ s[i]>>3 ^ uint64(lx.ByteMap[(s[i]^v2<<9)&mk])<<16
 			}
-			lastStage = stage<<32 ^ lastStage<<11 ^ lastStage>>1
+			as = s[i]<<32  ^ s[i]>>3 ^ as<<11 ^ as>>1
 		}
-		stages, stages2 = stages2, stages
+		s, s2 = s2, s
 	}
 	for i, v2 := range src {
 		idx := uint64(i)
 		step(idx, uint64(v2))
-		hash := hashes[idx%w.HashSize]
-		hashes[idx%w.HashSize] = lastStage ^ hash<<21 ^ hash>>1
+		hash := hs[idx%lx.HashSize]
+		hs[idx%lx.HashSize] = as ^ hash<<21 ^ hash>>1
 	}
-	bytes := make([]byte, w.HashSize)
-	for i, h := range hashes {
+	bytes := make([]byte, lx.HashSize)
+	for i, h := range hs {
 		step(uint64(i), h)
-		idx2 := (stages[0] ^ lastStage) & MapMask
-		bytes[i] = w.ByteMap[idx2]
+		idx2 := (s[0] ^ as) & mk
+		bytes[i] = lx.ByteMap[idx2]
 	}
 	return bytes
 }
+
 ```
 
+The current code has added 256 bytes of stages to accumulate more state quickly as the code moves through the source.  
