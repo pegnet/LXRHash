@@ -25,48 +25,48 @@ const (
 // HashSize is the number of bits in the hash; truncated to a byte bountry
 // Passes is the number of shuffles of the ByteMap performed.  Each pass shuffles all byte values in the map
 
-func (w *LXRHash) Init(Seed, MapSizeBits, HashSize, Passes uint64) {
+func (lx *LXRHash) Init(Seed, MapSizeBits, HashSize, Passes uint64) {
 
 	if MapSizeBits < 8 {
 		panic(fmt.Sprintf("Bad Map Size in Bits.  Must be between 8 and 34 bits, was %d", MapSizeBits))
 	}
 
 	MapSize := uint64(1) << MapSizeBits
-	w.ByteMap = make([]byte, int(MapSize))
+	lx.ByteMap = make([]byte, int(MapSize))
 
-	w.HashSize = (HashSize + 7) / 8
-	w.MapSize = MapSize
-	w.MapSizeBits = MapSizeBits
-	w.Seed = Seed
-	w.Passes = Passes
-	w.ReadTable()
+	lx.HashSize = (HashSize + 7) / 8
+	lx.MapSize = MapSize
+	lx.MapSizeBits = MapSizeBits
+	lx.Seed = Seed
+	lx.Passes = Passes
+	lx.ReadTable()
 
 }
 
 // ReadTable
 // When a lookup table is on the disk, this will allow one to read it.
-func (w *LXRHash) ReadTable() {
-	filename := fmt.Sprintf("lrxhash.seed-%x.passes-%d.size-%d.dat", w.Seed, w.Passes, w.MapSizeBits)
+func (lx *LXRHash) ReadTable() {
+	filename := fmt.Sprintf("lrxhash.seed-%x.passes-%d.size-%d.dat", lx.Seed, lx.Passes, lx.MapSizeBits)
 	// Try and load our byte map.
 	println("Reading ByteMap Table ", filename)
 	dat, err := ioutil.ReadFile(filename)
 
 	// If loading fails, or it is the wrong size, generate it.  Otherwise just use it.
-	if err != nil || len(dat) != int(w.MapSize) {
+	if err != nil || len(dat) != int(lx.MapSize) {
 		println("Table not found, Generating ByteMap Table ")
-		w.GenerateTable()
+		lx.GenerateTable()
 		fmt.Println("writeing ByteMap Table ")
-		w.WriteTable(filename)
+		lx.WriteTable(filename)
 		fmt.Println("Done")
 	} else {
-		w.ByteMap = dat
+		lx.ByteMap = dat
 	}
 }
 
 // WriteTable
 // When playing around with the algorithm, it is nice to generate files and use them off the disk.  This
 // allows the user to do that, and save the cost of regeneration between test runs.
-func (w *LXRHash) WriteTable(filename string) {
+func (lx *LXRHash) WriteTable(filename string) {
 	// Ah, the data file isn't good for us.  Delete it (if it exists)
 	os.Remove(filename)
 
@@ -83,7 +83,7 @@ func (w *LXRHash) WriteTable(filename string) {
 	}()
 
 	// write a chunk
-	if _, err := fo.Write(w.ByteMap[:]); err != nil {
+	if _, err := fo.Write(lx.ByteMap[:]); err != nil {
 		panic(err)
 	}
 
@@ -92,20 +92,20 @@ func (w *LXRHash) WriteTable(filename string) {
 // GenerateTable
 // Build a table with a rather simplistic but with many passes, adequately randomly ordered bytes.
 // We do some straight forward bitwise math to initialize and scramble our ByteMap.
-func (w *LXRHash) GenerateTable() {
+func (lx *LXRHash) GenerateTable() {
 
 	// Our own "random" generator that really is just used to shuffle values
-	offset := w.Seed ^ firstrand
-	b := w.Seed ^ firstb
+	offset := lx.Seed ^ firstrand
+	b := lx.Seed ^ firstb
 	v := firstv
-	MapMask := w.MapSize - 1
+	MapMask := lx.MapSize - 1
 	// The random index used to shuffle the ByteMap is itself computed through the ByteMap table
 	// in a deterministic pattern.
 	rand := func(i uint64) int64 {
 		offset = offset<<9 ^ offset>>1 ^ offset>>7 ^ b
-		v = uint64(w.ByteMap[(offset^b)&MapMask]) ^ v<<8 ^ v>>1
+		v = uint64(lx.ByteMap[(offset^b)&MapMask]) ^ v<<8 ^ v>>1
 		b = v<<7 ^ v<<13 ^ v<<33 ^ v<<52 ^ b<<9 ^ b>>1
-		return int64(uint64(offset) % uint64(w.MapSize))
+		return int64(uint64(offset) % uint64(lx.MapSize))
 	}
 
 	start := time.Now().Unix()
@@ -113,29 +113,29 @@ func (w *LXRHash) GenerateTable() {
 	// Fill the ByteMap with bytes ranging from 0 to 255.  As long as Mapsize%256 == 0, this
 	// looping and masking works just fine.
 	println("Initalize the Table")
-	for i := range w.ByteMap {
+	for i := range lx.ByteMap {
 		if (i+1)%1000 == 0 && time.Now().Unix()-period > 10 {
-			println(" Index ", i+1, " of ", len(w.ByteMap))
+			println(" Index ", i+1, " of ", len(lx.ByteMap))
 			period = time.Now().Unix()
 		}
-		w.ByteMap[i] = byte(i)
+		lx.ByteMap[i] = byte(i)
 	}
 
 	// Now what we want to do is just mix it all up.  Take every byte in the ByteMap list, and exchange it
 	// for some other byte in the ByteMap list. Note that we do this over and over, mixing and more mixing
 	// the ByteMap, but maintaining the ratio of each byte value in the ByteMap list.
 	println("Shuffling the Table")
-	for loops := 0; loops < int(w.Passes); loops++ {
+	for loops := 0; loops < int(lx.Passes); loops++ {
 		fmt.Println("Pass ", loops)
-		for i := range w.ByteMap {
+		for i := range lx.ByteMap {
 			if (i+1)%1000 == 0 && time.Now().Unix()-period > 10 {
-				fmt.Printf(" Index %10d Meg of %10d Meg -- Pass is %5.1f%% Complete\n", i/1024000, len(w.ByteMap)/1024000, 100*float64(i)/float64(len(w.ByteMap)))
+				fmt.Printf(" Index %10d Meg of %10d Meg -- Pass is %5.1f%% Complete\n", i/1024000, len(lx.ByteMap)/1024000, 100*float64(i)/float64(len(lx.ByteMap)))
 				period = time.Now().Unix()
 			}
 
 			j := rand(uint64(i))
-			w.ByteMap[i], w.ByteMap[j] = w.ByteMap[j], w.ByteMap[i]
+			lx.ByteMap[i], lx.ByteMap[j] = lx.ByteMap[j], lx.ByteMap[i]
 		}
-		fmt.Printf(" Index %10d Meg of %10d Meg -- Pass is %5.1f%% Complete\n", len(w.ByteMap)/1024000, len(w.ByteMap)/1024000, float64(100))
+		fmt.Printf(" Index %10d Meg of %10d Meg -- Pass is %5.1f%% Complete\n", len(lx.ByteMap)/1024000, len(lx.ByteMap)/1024000, float64(100))
 	}
 }
