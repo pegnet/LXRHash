@@ -1,5 +1,5 @@
 # LXRHash
-Lookup XoR hash
+Lookup XoR Hash
 ---------
 This is a simple hash algorithm that takes advantage of a lookup table of randomized sets of bytes.  This lookup table 
 consists of any number of 256 byte tables combined and sorted in one large table.  We then index into this large 
@@ -13,10 +13,10 @@ processor or computer architecture. The number of bytes in the resulting hash ca
 without any more processing time.  Note, while this approach *can* be fast, this implemenation isn't.  The use case 
 is aimed at Proof of Work (PoW), not cryptographic hashing.
   
-The lookup 
+The Lookup 
 -------
 table has equal numbers of every byte value, but has them randomized over the whole table.  When hashing, the bytes from 
-the source data are used to build offsets and state that are used to create the hash.
+the source data are used to build offsets and state that are in turn used to create the hash.
 
 In developing this hash, the goal was to produce very randomized hashes as outputs, with a strong avalanche response to 
 any change to any source byte.
