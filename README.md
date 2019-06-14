@@ -45,15 +45,16 @@ type LXRHash struct {
 func (lx LXRHash) Hash(src []byte) []byte {
 	hs := make([]uint64, lx.HashSize)
 	var as = lx.Seed
-	var s, s2 [11]uint64
+	var s, s2 [7]uint64
 	mk := lx.MapSize - 1
 	step := func(i uint64, v2 uint64) {
 		s[0] = s[0] ^ as ^ v2 ^ uint64(lx.ByteMap[(as^v2<<9)&mk])<<4
 		for i := len(s) - 1; i >= 0; i-- {
 			if i > 0 {
-				s[i] = s[i-1]<<7 ^ s[i-1]>>1 ^ s[i]<<17 ^ s[i]>>3 ^ uint64(lx.ByteMap[(s[i]^v2<<9)&mk])<<16
+				s[i] = s[i-1]<<7 ^ s[i-1]>>1 ^ s[i]<<17 ^ s[i]>>3 ^ uint64(lx.ByteMap[(s[i]^v2<<9)&mk])<<33
 			}
-			as = s[i]<<32  ^ s[i]>>3 ^ as<<11 ^ as>>1
+			as = s[i]<<32 ^ s[i]>>3 ^ as<<11 ^ as>>1 ^uint64(lx.ByteMap[(s[3]^v2<<9)&mk])<<31
+			s[0], s[1], s[2], s[3], s[4], s[5], s[6] = s[5], s[6], s[4], s[2], s[1], s[3], s[0]
 		}
 		s, s2 = s2, s
 	}
@@ -71,6 +72,7 @@ func (lx LXRHash) Hash(src []byte) []byte {
 	}
 	return bytes
 }
+
 
 ```
 
