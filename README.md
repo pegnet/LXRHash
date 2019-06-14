@@ -51,10 +51,10 @@ func (lx LXRHash) Hash(src []byte) []byte {
 		s[0] = s[0] ^ as ^ v2 ^ uint64(lx.ByteMap[(as^v2<<9)&mk])<<4
 		for i := len(s) - 1; i >= 0; i-- {
 			if i > 0 {
-				s[i] = s[i-1]<<7 ^ s[i-1]>>1 ^ s[i]<<17 ^ s[i]>>3 ^ uint64(lx.ByteMap[(s[i]^v2<<9)&mk])<<33
+				s[i] = s[i-1]<<23 ^ s[i-1]>>5 ^ s[i]<<17 ^ s[i]>>3 ^ uint64(lx.ByteMap[(s[i]^v2<<9)&mk])<<11
 			}
-			as = s[i]<<32 ^ s[i]>>3 ^ as<<11 ^ as>>1 ^uint64(lx.ByteMap[(s[3]^v2<<9)&mk])<<31
-			s[0], s[1], s[2], s[3], s[4], s[5], s[6] = s[5], s[6], s[4], s[2], s[1], s[3], s[0]
+			as = s[i]<<29 ^ s[i]>>5 ^ as<<17 ^ as>>1 ^ uint64(lx.ByteMap[(s[3]^v2<<9)&mk])<<13
+			s[0], s[1], s[2], s[3], s[4], s[5], s[6] = s[4], s[5], s[2], s[6], s[3], s[0], s[1]
 		}
 		s, s2 = s2, s
 	}
@@ -72,8 +72,6 @@ func (lx LXRHash) Hash(src []byte) []byte {
 	}
 	return bytes
 }
-
-
 ```
 
 The current code has added 256 bytes of stages to accumulate more state quickly as the code moves through the source.  

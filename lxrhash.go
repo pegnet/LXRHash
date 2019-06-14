@@ -29,7 +29,7 @@ func (lx LXRHash) Hash(src []byte) []byte {
 				s[i] = s[i-1]<<23 ^ s[i-1]>>5 ^ s[i]<<17 ^ s[i]>>3 ^ uint64(lx.ByteMap[(s[i]^v2<<9)&mk])<<11
 			}
 			as = s[i]<<29 ^ s[i]>>5 ^ as<<17 ^ as>>1 ^ uint64(lx.ByteMap[(s[3]^v2<<9)&mk])<<13
-			s[0], s[1], s[2], s[3], s[4], s[5], s[6] = s[5], s[6], s[4], s[2], s[1], s[3], s[0]
+			s[0], s[1], s[2], s[3], s[4], s[5], s[6] = s[4], s[5], s[2], s[6], s[3], s[0], s[1]
 		}
 		s, s2 = s2, s
 	}
