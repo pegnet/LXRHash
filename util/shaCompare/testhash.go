@@ -233,7 +233,7 @@ func GenAll(Seed, Passes uint64) {
 func main() {
 	rand.Seed(123412341234)
 
-	Seed := uint64(46898902133)
+	Seed := uint64(0xFAFAECECFAFAECEC)
 	MaxSizeBits := uint64(33)
 	Passes := uint64(5)
 	HashSize := uint64(256)
@@ -245,6 +245,20 @@ func main() {
 	lxr.Gradehash{}.PrintHeader()
 
 	//go BitCountTest(rate)
+	go BitChangeTest()
+	go BitChangeTest()
+	go BitChangeTest()
+	go BitChangeTest()
+	go BitChangeTest()
+	go BitChangeTest()
+	go BitChangeTest()
+	go BitChangeTest()
+	go BitChangeTest()
+	go BitChangeTest()
+	go BitChangeTest()
+	go BitChangeTest()
+	go BitChangeTest()
+	go BitChangeTest()
 	go BitChangeTest()
 
 	//go DifferentHashes(rate)
