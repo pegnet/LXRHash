@@ -77,8 +77,8 @@ func BitCountTest() {
 
 				c, r1 := g1.Report("cnt-sha")
 				_, r2 := g2.Report("cnt-lxr")
-				fmt.Printf("%10s %s",c,r1)
-				fmt.Printf("%10s %s"," ",r2)
+				fmt.Printf("%10s %s", c, r1)
+				fmt.Printf("%10s %s", " ", r2)
 				fmt.Println()
 
 			}
@@ -119,8 +119,8 @@ func AddByteTest() {
 
 				c, r1 := g1.Report("add-sha")
 				_, r2 := g2.Report("add-lxr")
-				fmt.Printf("%10s %s",c,r1)
-				fmt.Printf("%10s %s"," ",r2)
+				fmt.Printf("%10s %s", c, r1)
+				fmt.Printf("%10s %s", " ", r2)
 				fmt.Println()
 
 			}
@@ -169,8 +169,8 @@ func BitChangeTest() {
 
 					c, r1 := g1.Report("bit-sha")
 					_, r2 := g2.Report("bit-lxr")
-					fmt.Printf("%10s %s\n",c,r1)
-					fmt.Printf("%10s %s\n"," ",r2)
+					fmt.Printf("%10s %s\n", c, r1)
+					fmt.Printf("%10s %s\n", " ", r2)
 					fmt.Println()
 
 				}
@@ -210,8 +210,8 @@ func DifferentHashes() {
 
 			c, r1 := g1.Report("dif-sha")
 			_, r2 := g2.Report("dif-lxr")
-			fmt.Printf("%10s %s",c,r1)
-			fmt.Printf("%10s %s"," ",r2)
+			fmt.Printf("%10s %s", c, r1)
+			fmt.Printf("%10s %s", " ", r2)
 			fmt.Println()
 
 		}
