@@ -17,7 +17,7 @@ func (lx LXRHash) Hash(src []byte) []byte {
 	// and combine it with the state we are building up.
 	var as = lx.Seed
 	// We keep a series of states, and roll them along through each byte of source processed.
-	var s, s2 [11]uint64
+	var s, s2 [7]uint64
 	// Since MapSize is specified in bits, the index mask is the size-1
 	mk := lx.MapSize - 1
 
@@ -29,6 +29,7 @@ func (lx LXRHash) Hash(src []byte) []byte {
 				s[i] = s[i-1]<<7 ^ s[i-1]>>1 ^ s[i]<<17 ^ s[i]>>3 ^ uint64(lx.ByteMap[(s[i]^v2<<9)&mk])<<16
 			}
 			as = s[i]<<32  ^ s[i]>>3 ^ as<<11 ^ as>>1
+			s[0],s[1],s[2],s[3],s[4],s[5],s[6] =s[5],s[6],s[4],s[2],s[1],s[3],s[0]
 		}
 		s, s2 = s2, s
 	}

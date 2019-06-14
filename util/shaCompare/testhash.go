@@ -228,7 +228,7 @@ func main() {
 	rand.Seed(123412341234)
 
 	Seed := uint64(46898902133)
-	MaxSizeBits := uint64(32)
+	MaxSizeBits := uint64(33)
 	Passes := uint64(5)
 	HashSize := uint64(256)
 
