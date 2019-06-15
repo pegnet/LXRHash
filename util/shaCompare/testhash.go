@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	line = "--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------"
+	line = "--------------------------------------------------------------------------------------------------------------------"
 )
 
 var lxrhash lxr.LXRHash
@@ -71,13 +71,15 @@ func BitCountTest() {
 			g2.Stop()
 			g2.AddHash(buf, wv)
 
-			if cnt > 1000 && time.Now().Unix()-last > 4  {
+			if cnt > 1000 && time.Now().Unix()-last > 4 {
 				last = time.Now().Unix()
 				cnt = 0
 
-				g1.Report("bit-sha")
-				g2.Report("bit-lxr")
-				fmt.Print(line)
+				c, r1 := g1.Report("cnt-sha")
+				_, r2 := g2.Report("cnt-lxr")
+				fmt.Printf("%10s %s", c, r1)
+				fmt.Printf("%10s %s", " ", r2)
+				fmt.Println()
 
 			}
 		}
@@ -111,13 +113,15 @@ func AddByteTest() {
 
 			buf = append(buf, byte(rand.Intn(255)))
 
-			if cnt > 1000 && time.Now().Unix()-last > 4  {
+			if cnt > 1000 && time.Now().Unix()-last > 4 {
 				last = time.Now().Unix()
 				cnt = 0
 
-				g1.Report("bit-sha")
-				g2.Report("bit-lxr")
-				fmt.Print(line)
+				c, r1 := g1.Report("add-sha")
+				_, r2 := g2.Report("add-lxr")
+				fmt.Printf("%10s %s", c, r1)
+				fmt.Printf("%10s %s", " ", r2)
+				fmt.Println()
 
 			}
 		}
@@ -159,14 +163,15 @@ func BitChangeTest() {
 				// flipping a bit again repairs it.
 				buf[i] = buf[i] ^ bit_to_flip
 
-				if cnt > 1000 && time.Now().Unix()-last > 4  {
+				if cnt > 1000 && time.Now().Unix()-last > 4 {
 					last = time.Now().Unix()
 					cnt = 0
 
-					g1.Report("bit-sha")
-					g2.Report("bit-lxr")
-					fmt.Print(line)
-
+					c, r1 := g1.Report("bit-sha")
+					_, r2 := g2.Report("bit-lxr")
+					// Print on one line, so if we run multiple tests at the same time, we don't
+					// split the output, because go will ensure one print goes out uninterrupted.
+					fmt.Printf("%10s %s\n%10s %s\n\n", c, r1, " ", r2)
 				}
 			}
 
@@ -182,7 +187,7 @@ func DifferentHashes() {
 	buf := Getbuf()
 
 	last := time.Now().Unix()
-	cnt :=0
+	cnt := 0
 	for i := 1; i < 100000000000; i++ {
 
 		// Get a new buffer of data.
@@ -198,13 +203,15 @@ func DifferentHashes() {
 		g2.Stop()
 		g2.AddHash(buf, wv)
 		cnt++
-		if cnt > 1000 && time.Now().Unix()-last > 4  {
+		if cnt > 1000 && time.Now().Unix()-last > 4 {
 			last = time.Now().Unix()
 			cnt = 0
 
-			g1.Report("bit-sha")
-			g2.Report("bit-lxr")
-			fmt.Print(line)
+			c, r1 := g1.Report("dif-sha")
+			_, r2 := g2.Report("dif-lxr")
+			fmt.Printf("%10s %s", c, r1)
+			fmt.Printf("%10s %s", " ", r2)
+			fmt.Println()
 
 		}
 	}
@@ -214,21 +221,19 @@ func DifferentHashes() {
 // Generate all the map files for a particular seed, and number of passes
 func GenAll(Seed, Passes uint64) {
 
-	for i:= uint64(8); i < 33; i++ {
-		meg := float64(uint64(1)<<i)/1000000
-		fmt.Printf("Processing Map of %12.4f MB, %d bits\n",meg, i)
+	for i := uint64(8); i < 33; i++ {
+		meg := float64(uint64(1)<<i) / 1000000
+		fmt.Printf("Processing Map of %12.4f MB, %d bits\n", meg, i)
 		lxrHash := lxr.LXRHash{}
 		lxrHash.Init(Seed, i, 255, Passes)
 	}
 }
 
-
-
 func main() {
 	rand.Seed(123412341234)
 
-	Seed := uint64(46898902133)
-	MaxSizeBits := uint64(32)
+	Seed := uint64(0xFAFAECECFAFAECEC)
+	MaxSizeBits := uint64(33)
 	Passes := uint64(5)
 	HashSize := uint64(256)
 
@@ -240,7 +245,20 @@ func main() {
 
 	//go BitCountTest(rate)
 	go BitChangeTest()
-
+	go BitChangeTest()
+	go BitChangeTest()
+	go BitChangeTest()
+	go BitChangeTest()
+	go BitChangeTest()
+	go BitChangeTest()
+	go BitChangeTest()
+	go BitChangeTest()
+	go BitChangeTest()
+	go BitChangeTest()
+	go BitChangeTest()
+	go BitChangeTest()
+	go BitChangeTest()
+	go BitChangeTest()
 
 	//go DifferentHashes(rate)
 	//go AddByteTest(rate)

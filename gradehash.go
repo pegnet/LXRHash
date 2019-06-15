@@ -26,17 +26,25 @@ type Gradehash struct {
 }
 
 func (g Gradehash) PrintHeader() {
-	fmt.Println("Key For Data Printed while tests run:\n" +
-		"Time of test\n" +
-		"| bit-xxx -- Specifies the test (bit) and the hash function used (sha is sha246, and lxr is LXRHash\n" +
-		"| SB -- Difference of the expected Avergae number of repeated bytes, and what the test produced. \n" +
-		"| max,min : -- most frequent bytes in all hashes and by how much.  Lower values are better\n" +
-		"| score -- looks at the square of the difference between the expected number of changed bytes from one hash to another.  Lower is better\n" +
-		"| BitsFlipped -- average number of bits flipped from one hash to the next.  Should be close to 1/2 the bits in a hash.\n" +
-		"| 16 bytes of source data :: 16 bytes of the hash of the data + nonce\n" +
-		"| diff = high 64 bytes of the hash as a difficulty, if the hash leads with two bytes of zeros\n" +
-		"| cnt= number of qualifying 'difficult' hashes found\n" +
-		"| seconds number of seconds in test used to calculate this hash\n")
+	fmt.Print("Key For Data Printed while tests run:\n" +
+		"| xxx,xxx :  of the number of hashes performed.  The test does the same number of sha hashes as lxr hashes\n" +
+		"| bit-xxx :  This is the test, where the test (bit or add, or cnt, or dif) is followed by -xxx where xxx\n" +
+		"               is either sha or lxr.  Like bit-sha or dif-lxr\n" +
+		"| SB      :  How many bytes changed relative to expected number of the bytes that should change from one\n" +
+		"               hash to the next.  You want zero, which means, over time, you have exactly the expected\n" +
+		"               number of bytes changing.\n" +
+		"| xx - xx :  We count how many byte values we see. Possible values are 00 to FF.  All should be even, and\n" +
+		"               no byte value should be favored.  We print which byte we saw the most, and which we saw the\n" +
+		"               least. If the bytes change over time, that's good.\n" +
+		"| bits    :  Half the bits should change.  Averaged over all the hashes in the test, this is the difference\n" +
+		"               between, say 128 for a 256 bit hash and how many bits have actually changed over the hashes." +
+		"  Stay    :  on average, how many bits remain the same between hashes. Closer to 1/2 the bits in the hash is good.\n" +
+		"             Flip and Stay are picked to keep the difference positive, which is a better way to compare\n" +
+		"| ffxxxxx :  The maximum unsigned high order eight bytes of the hash.  Like mining.  Both sha and lxr should\n" +
+		"               should kinda take the same number of hashes to get kinda the same-ish max value\n" +
+		"| cnt     :  Number of times we found a bigger hash in this run\n" +
+		"| xxx tps :  We take the time executing sha and the time executing lxr and calculate a rough estimate of\n" +
+		"               how many hashes per second we could be executing them.  Generally lxr is way slower.\n\n")
 }
 
 func (g *Gradehash) AddHash(src []byte, hash []byte) {
@@ -79,14 +87,12 @@ func (g *Gradehash) AddHash(src []byte, hash []byte) {
 	g.last = hash
 
 	diff := Difficulty(hash)
-	if g.difficulty == 0 || (diff != 0 && diff < g.difficulty) {
+	if diff > g.difficulty {
 		g.difficulty = diff
 		g.diffHash = hash
 		g.diffsrc = append(g.diffsrc[:0], src...)
-		if g.difficulty > 0 {
-			g.diffcnt++
-			g.diffchanged = true
-		}
+		g.diffcnt++
+		g.diffchanged = true
 	}
 
 }
@@ -100,7 +106,8 @@ func (g *Gradehash) Stop() {
 	g.exctime += diff
 }
 
-func (g *Gradehash) Report(name string) {
+// return the count of the number of hashes performed.
+func (g *Gradehash) Report(name string) (hashcount string, report string) {
 	now := time.Now().Unix()
 	secs := now - runStart
 	hrs := secs / 60 / 60
@@ -109,7 +116,7 @@ func (g *Gradehash) Report(name string) {
 	secs = secs - mins*60
 
 	if g.numhashes == 0 {
-		fmt.Println("no report data")
+		report = fmt.Sprintln("no report data")
 		return
 	}
 
@@ -137,7 +144,7 @@ func (g *Gradehash) Report(name string) {
 
 	spentv := float64(g.exctime) / 1000000000 // In seconds, divide by a billion
 	tps := humanize.Comma(int64(float64(g.numhashes) / spentv))
-	spent := fmt.Sprintf("| %16s tps", tps)
+	spent := fmt.Sprintf("| %10s tps", tps)
 
 	// Calculate how far off from half (128) we are.  Cause that is what matters.
 	AvgBitsChanged := float64(g.bitsChanged) / float64(g.numhashes)
@@ -150,51 +157,36 @@ func (g *Gradehash) Report(name string) {
 
 	halfbits := float64(len(g.positionSums) * 8 / 2)
 	avgChanged := ""
-	if AvgBitsChanged > halfbits {
-		avgChanged = fmt.Sprintf("%16s %12.8f", "BitsFlipped", AvgBitsChanged)
-	} else {
-		avgChanged = fmt.Sprintf("%16s %12.8f", "BitsUnchanged", halfbits*2-AvgBitsChanged)
-	}
+	avgChanged = fmt.Sprintf("bits: %11.8f", AvgBitsChanged-halfbits)
 
-	fmt.Printf("\n%8s %12s:: | SB %10.6f | max,min : %3d %10.6f : %3d %10.6f : | score %14.10f | %s |",
+	hashcount = humanize.Comma(int64(g.numhashes))
+
+	report = fmt.Sprintf("%8s | SB %11.8f | %02x - %02x | score %12.10f | %s |",
 		name,
-		humanize.Comma(int64(g.numhashes)),
 		1.0/256*float64(len(g.diffHash))-bytesSame,
-		maxb, maxn,
-		minb, minn,
+		maxb,
+		minb,
 		score,
 		avgChanged)
 	if len(g.diffsrc) > 16 && len(g.diffHash) > 16 {
-		fmt.Printf(" \"%10x\"::%10x | diff=%12x | cnt=%5d ",
-			g.diffsrc[:5],
+		report += fmt.Sprintf(" %10x | cnt= %2d ",
 			g.diffHash[:5],
-			g.difficulty,
 			g.diffcnt)
 	}
+	report += spent
 	g.diffchanged = false
-	fmt.Println("  ", spent)
+	return
 }
 
+// Consider a bigger number to be more difficult.  (This is a bit different
+// than most PoW.  It is the same as viewing the return value as signed, and
+// saying a smaller value is more difficult, due to the nature of signed
+// values in binary.
 func Difficulty(hash []byte) uint64 {
-	// skip start leading bytes If they are not zero, the Difficulty is zero
-	start := 2
-	for _, v := range hash[:start] {
-		if v != 0 {
-			return 0
-		}
-	}
-	// The next 8 bytes define the Difficulty.  A smaller number is more difficult
-
-	// Shift v a byte left and add the new byte
-	as := func(v uint64, b byte) uint64 {
-		return (v << 8) + uint64(b)
-	}
-
 	// Calculate the Difficulty
 	diff := uint64(0)
-	for i := start; i < start+6; i++ {
-		// Add each byte to an 8 byte Difficulty, shifting the previous values left a byte each round
-		diff = as(diff, hash[i])
+	for i := 0; i < 8; i++ {
+		diff = diff<<8 + uint64(hash[i])
 	}
 	return diff
 }

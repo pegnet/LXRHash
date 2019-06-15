@@ -105,7 +105,7 @@ func (lx *LXRHash) GenerateTable() {
 		offset = offset<<9 ^ offset>>1 ^ offset>>7 ^ b
 		v = uint64(lx.ByteMap[(offset^b)&MapMask]) ^ v<<8 ^ v>>1
 		b = v<<7 ^ v<<13 ^ v<<33 ^ v<<52 ^ b<<9 ^ b>>1
-		return int64(uint64(offset) % uint64(lx.MapSize))
+		return int64(uint64(offset) & uint64(MapMask))
 	}
 
 	start := time.Now().Unix()
