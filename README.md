@@ -43,32 +43,25 @@ type LXRHash struct {
 	HashSize    uint64 // Number of bytes in the hash
 }
 func (lx LXRHash) Hash(src []byte) []byte {
-	hs := make([]uint64, lx.HashSize)
+	hs := make([]uint64, lx.HashSize) 
 	var as = lx.Seed
-	var s, s2 [7]uint64
+	var s1, s2 uint64
 	mk := lx.MapSize - 1
-	step := func(i uint64, v2 uint64) {
-		s[0] = s[0] ^ as ^ v2 ^ uint64(lx.ByteMap[(as^v2<<9)&mk])<<4
-		for i := len(s) - 1; i >= 0; i-- {
-			if i > 0 {
-				s[i] = s[i-1]<<23 ^ s[i-1]>>5 ^ s[i]<<17 ^ s[i]>>3 ^ uint64(lx.ByteMap[(s[i]^v2<<9)&mk])<<11
-			}
-			as = s[i]<<29 ^ s[i]>>5 ^ as<<17 ^ as>>1 ^ uint64(lx.ByteMap[(s[3]^v2<<9)&mk])<<13
-			s[0], s[1], s[2], s[3], s[4], s[5], s[6] = s[4], s[5], s[2], s[6], s[3], s[0], s[1]
-		}
-		s, s2 = s2, s
+	step := func(v2 uint64) {
+		s1 = s1 ^ as ^ v2 ^ uint64(lx.ByteMap[(as^v2<<9)&mk])<<4
+		s2 = s1<<23 ^ s1>>5 ^ s2<<17 ^ s2>>3 ^ uint64(lx.ByteMap[(s2^v2<<9)&mk])<<11
+		as = s2<<29 ^ s2>>7 ^ as<<37 ^ as>>1 ^ uint64(lx.ByteMap[(s1^v2<<9)&mk])<<13
+		s1, s2 = s2, s1
 	}
 	for i, v2 := range src {
-		idx := uint64(i)
-		step(idx, uint64(v2))
-		hash := hs[idx%lx.HashSize]
-		hs[idx%lx.HashSize] = as ^ hash<<21 ^ hash>>1
+		idx := uint64(i) % lx.HashSize
+		step(uint64(v2))
+		hs[idx] = as ^ hs[idx]
 	}
 	bytes := make([]byte, lx.HashSize)
 	for i, h := range hs {
-		step(uint64(i), h)
-		idx2 := (s[0] ^ as) & mk
-		bytes[i] = lx.ByteMap[idx2]
+		step(h)
+		bytes[i] = lx.ByteMap[as&mk] ^ bytes[i]
 	}
 	return bytes
 }

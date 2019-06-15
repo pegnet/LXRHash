@@ -36,8 +36,8 @@ func (g Gradehash) PrintHeader() {
 		"| xx - xx :  We count how many byte values we see. Possible values are 00 to FF.  All should be even, and\n" +
 		"               no byte value should be favored.  We print which byte we saw the most, and which we saw the\n" +
 		"               least. If the bytes change over time, that's good.\n" +
-		"| score   :  We take byte count differences from expectations, and square and sum.  Closer to zero is better\n" +
-		"| flip    :  On average, how many bits flip from one hash to the next. Closer to 1/2 the bits in the hash is good.\n" +
+		"| bits    :  Half the bits should change.  Averaged over all the hashes in the test, this is the difference\n" +
+		"               between, say 128 for a 256 bit hash and how many bits have actually changed over the hashes." +
 		"  Stay    :  on average, how many bits remain the same between hashes. Closer to 1/2 the bits in the hash is good.\n" +
 		"             Flip and Stay are picked to keep the difference positive, which is a better way to compare\n" +
 		"| ffxxxxx :  The maximum unsigned high order eight bytes of the hash.  Like mining.  Both sha and lxr should\n" +
@@ -157,11 +157,7 @@ func (g *Gradehash) Report(name string) (hashcount string, report string) {
 
 	halfbits := float64(len(g.positionSums) * 8 / 2)
 	avgChanged := ""
-	if AvgBitsChanged > halfbits {
-		avgChanged = fmt.Sprintf("%4s %12.8f", "Flip", AvgBitsChanged)
-	} else {
-		avgChanged = fmt.Sprintf("%4s %12.8f", "Stay", halfbits*2-AvgBitsChanged)
-	}
+	avgChanged = fmt.Sprintf("bits: %11.8f", AvgBitsChanged-halfbits)
 
 	hashcount = humanize.Comma(int64(g.numhashes))
 
