@@ -171,7 +171,7 @@ func BitChangeTest() {
 					_, r2 := g2.Report("bit-lxr")
 					// Print on one line, so if we run multiple tests at the same time, we don't
 					// split the output, because go will ensure one print goes out uninterrupted.
-					fmt.Printf("%10s %s\n%10s %s\n\n", c, r1," ",r2)
+					fmt.Printf("%10s %s\n%10s %s\n\n", c, r1, " ", r2)
 				}
 			}
 
