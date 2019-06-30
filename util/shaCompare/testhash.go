@@ -4,7 +4,7 @@ import (
 	rand2 "crypto/rand"
 	"crypto/sha256"
 	"fmt"
-	"github.com/pegnet/LXR256"
+	"github.com/pegnet/LXRHash"
 	"math/rand"
 	"time"
 )
@@ -233,7 +233,7 @@ func main() {
 	rand.Seed(123412341234)
 
 	Seed := uint64(0xFAFAECECFAFAECEC)
-	MaxSizeBits := uint64(33)
+	MaxSizeBits := uint64(25)
 	Passes := uint64(5)
 	HashSize := uint64(256)
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/user"
 	"time"
 )
 
@@ -46,7 +47,16 @@ func (lx *LXRHash) Init(Seed, MapSizeBits, HashSize, Passes uint64) {
 // ReadTable
 // When a lookup table is on the disk, this will allow one to read it.
 func (lx *LXRHash) ReadTable() {
-	filename := fmt.Sprintf("lrxhash.seed-%x.passes-%d.size-%d.dat", lx.Seed, lx.Passes, lx.MapSizeBits)
+
+	u, err := user.Current()
+	if err != nil {
+		panic(err)
+	}
+	userPath := u.HomeDir
+	lxrhashPath := userPath+"/.lxrhash"
+	_ = os.MkdirAll(lxrhashPath, os.ModePerm)
+
+	filename := fmt.Sprintf(lxrhashPath+"/lrxhash-seed-%x-passes-%d.size-%d.dat", lx.Seed, lx.Passes, lx.MapSizeBits)
 	// Try and load our byte map.
 	println("Reading ByteMap Table ", filename)
 	dat, err := ioutil.ReadFile(filename)
