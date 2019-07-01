@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/user"
 	"time"
 )
 
@@ -46,7 +47,19 @@ func (lx *LXRHash) Init(Seed, MapSizeBits, HashSize, Passes uint64) {
 // ReadTable
 // When a lookup table is on the disk, this will allow one to read it.
 func (lx *LXRHash) ReadTable() {
-	filename := fmt.Sprintf("lrxhash.seed-%x.passes-%d.size-%d.dat", lx.Seed, lx.Passes, lx.MapSizeBits)
+
+	u, err := user.Current()
+	if err != nil {
+		panic(err)
+	}
+	userPath := u.HomeDir
+	lxrhashPath := userPath + "/.lxrhash"
+	err = os.MkdirAll(lxrhashPath, os.ModePerm)
+	if err != nil {
+		panic(fmt.Sprintf("Could not create the directory %s", lxrhashPath))
+	}
+
+	filename := fmt.Sprintf(lxrhashPath+"/lrxhash-seed-%x-passes-%d.size-%d.dat", lx.Seed, lx.Passes, lx.MapSizeBits)
 	// Try and load our byte map.
 	println("Reading ByteMap Table ", filename)
 	dat, err := ioutil.ReadFile(filename)
@@ -112,7 +125,7 @@ func (lx *LXRHash) GenerateTable() {
 	period := start
 	// Fill the ByteMap with bytes ranging from 0 to 255.  As long as Mapsize%256 == 0, this
 	// looping and masking works just fine.
-	println("Initalize the Table")
+	println("Initialize the Table")
 	for i := range lx.ByteMap {
 		if (i+1)%1000 == 0 && time.Now().Unix()-period > 10 {
 			println(" Index ", i+1, " of ", len(lx.ByteMap))
