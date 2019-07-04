@@ -43,7 +43,7 @@ func (g Gradehash) PrintHeader() {
 		"| ffxxxxx :  The maximum unsigned high order eight bytes of the hash.  Like mining.  Both sha and lxr should\n" +
 		"               should kinda take the same number of hashes to get kinda the same-ish max value\n" +
 		"| cnt     :  Number of times we found a bigger hash in this run\n" +
-		"| xxx tps :  We take the time executing sha and the time executing lxr and calculate a rough estimate of\n" +
+		"| xxx hps :  We take the time executing sha and the time executing lxr and calculate a rough estimate of\n" +
 		"               how many hashes per second we could be executing them.  Generally lxr is way slower.\n\n")
 }
 
@@ -143,8 +143,8 @@ func (g *Gradehash) Report(name string) (hashcount string, report string) {
 	}
 
 	spentv := float64(g.exctime) / 1000000000 // In seconds, divide by a billion
-	tps := humanize.Comma(int64(float64(g.numhashes) / spentv))
-	spent := fmt.Sprintf("| %10s tps", tps)
+	hps := humanize.Comma(int64(float64(g.numhashes) / spentv))
+	spent := fmt.Sprintf("| %10s hps", hps)
 
 	// Calculate how far off from half (128) we are.  Cause that is what matters.
 	AvgBitsChanged := float64(g.bitsChanged) / float64(g.numhashes)
