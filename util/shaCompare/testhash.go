@@ -250,7 +250,7 @@ func main() {
 	Passes := uint64(6)
 	HashSize := uint64(256)
 
-	GenAll(Seed,Passes)
+	//GenAll(Seed,Passes)
 
 	lxrhash.Init(Seed, MaxSizeBits, HashSize, Passes)
 
