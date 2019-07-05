@@ -21,9 +21,8 @@ func TestDifferentHashes(t *testing.T) {
 		go DifferentHashes()
 	}
 
-	for {
-		time.Sleep(1 * time.Second)
-	}
+	time.Sleep(180 * time.Second)
+
 }
 
 func DifferentHashes() {

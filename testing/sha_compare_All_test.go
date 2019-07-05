@@ -22,7 +22,6 @@ func TestAll(t *testing.T) {
 		go AddByteTest()
 	}
 
-	for {
-		time.Sleep(1 * time.Second)
-	}
+	time.Sleep(180 * time.Second)
+
 }

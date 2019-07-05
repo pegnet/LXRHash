@@ -21,9 +21,8 @@ func TestCount(t *testing.T) {
 		go BitCountTest()
 	}
 
-	for {
-		time.Sleep(1 * time.Second)
-	}
+	time.Sleep(180 * time.Second)
+
 }
 
 func BitCountTest() {
