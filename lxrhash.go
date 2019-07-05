@@ -24,20 +24,48 @@ func (lx LXRHash) Hash(src []byte) []byte {
 	B := func(v uint64) uint64 { return uint64(lx.ByteMap[v&mk]) }
 	b := func(v uint64) byte { return byte(B(v)) }
 
-	// Define a function to move the state by one byte.
-	step := func(v2 uint64) {
-		s1 = s1<<9 ^ s1>>7 ^ as ^ B(as)<<7^B(s1^v2)<<3 ^ B(as^s1)<<17^ B(v2^as>>11^s1)<<23
-		as = as<<17 ^ as>>1 ^ s1 ^ B(as^v2)<<9^B(s1)<<8 ^ B(as^s1)<<23^ B(v2^as>>17^as^s1)<<17
-		s1 = s1<<7 ^ s1>>27 ^ as ^ B(as)<<11^B(s1^v2)<<9 ^ B(as^s1)<<33^ B(v2^as>>13^as^s1)<<23
-		as = as<<23 ^ as>>3 ^ s1 ^ B(as^v2)<<13^B(s1)<<11 ^ B(as^s1)<<40^ B(v2^as>>9^as^s1)<<17
-		s1 = s1<<5 ^ s1>>3 ^ as ^ B(as)<<15^B(s1^v2)<<5 ^ B(as^s1)<<43^ B(v2^as>>23^as^s1)<<23
-		s2 = s2<<3 ^ s2>>17 ^ s1 ^ B(as^v2)<<17^B(s1)<<2 ^ B(as^s1)<<51^ B(v2^as>>15^as^s1)<<17
+	// Define a function to move the state by one byte.  This is not intended to be fast
+	// Requires the previous byte read to process the next byte read.  Forces serial evaluation
+	// and removes the possibility of scheduling byte access.
+	step := func(v2 uint64, idx uint64) {
+		s1 = s1<<9 ^ s1>>7 ^ as ^ B(as)<<7
+		s1 = s1 ^ B(s1^v2)<<3
+		s1 = s1 ^ B(as^s1)<<17
+		s1 = s1 ^ B(v2^as>>11^s1)<<23
+
+		as = as<<17 ^ as>>1 ^ s1 ^ B(as^v2)<<9
+		as = as ^ B(s1)<<8
+		as = as ^ B(as^s1)<<23
+		as = as ^ B(v2^as>>17^as^s1)<<17
+
+		s1 = s1<<7 ^ s1>>27 ^ as ^ B(as)<<11
+		s1 = s1 ^ B(s1^v2)<<9
+		s1 = s1 ^ B(as^s1)<<33
+		s1 = s1 ^ B(v2^as>>13^as^s1)<<23
+
+		as = as<<23 ^ as>>3 ^ s1 ^ B(as^v2)<<13
+		as = as ^ B(as^s1)<<11
+		as = as ^ B(as^s1)<<40
+		as = as ^ B(v2^as>>9^as^s1)<<17
+
+		s1 = s1<<5 ^ s1>>3 ^ as ^ B(as)<<15
+		s1 = s1 ^ B(s1^v2)<<5
+		s1 = s1 ^ B(as^s1)<<43
+		s1 = s1 ^ B(v2^as>>23^as^s1)<<23
+
+		s2 = s2<<3 ^ s2>>17 ^ s1 ^ B(as^s1^v2)<<17
+		s2 = s2 ^ B(s2)<<2
+		s2 = s2 ^ B(as^s1^s2)<<51
+		s2 = s2 ^ B(v2^as>>15^as^s2)<<17
+
+		s1 = s1 ^ hs[idx]
+
 		s1, s2, s3 = s3, s1, s2
 	}
 
 	for i, v2 := range src {
 		idx := uint64(i) % lx.HashSize
-		step(uint64(v2))
+		step(uint64(v2), idx)
 		// Set one of the hs[] using the last rolling value, the input byte v2,
 		// the mapped byte bytemap, and the previous hs[] value
 		hs[idx] = as ^ hs[idx]
@@ -52,9 +80,9 @@ func (lx LXRHash) Hash(src []byte) []byte {
 	bytes := make([]byte, lx.HashSize)
 	// Roll over all the hs (32 int64 values)
 	for i, h := range hs {
-		step(h)
+		step(h, uint64(i))
 		// Set a byte
-		bytes[i] = b(as) ^ bytes[i]
+		bytes[i] = b(as) ^ b(hs[i])
 	}
 
 	// Return the resulting hash

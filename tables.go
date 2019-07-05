@@ -53,7 +53,7 @@ func (lx *LXRHash) ReadTable() {
 		panic(err)
 	}
 	userPath := u.HomeDir
-	lxrhashPath := userPath + "/.lxrhash"
+	lxrhashPath := userPath + "/.Lxrhash"
 	err = os.MkdirAll(lxrhashPath, os.ModePerm)
 	if err != nil {
 		panic(fmt.Sprintf("Could not create the directory %s", lxrhashPath))
@@ -78,7 +78,7 @@ func (lx *LXRHash) ReadTable() {
 
 // WriteTable
 // When playing around with the algorithm, it is nice to generate files and use them off the disk.  This
-// allows the user to do that, and save the cost of regeneration between test runs.
+// allows the user to do that, and save the cost of regeneration between Lxrhash runs.
 func (lx *LXRHash) WriteTable(filename string) {
 	// Ah, the data file isn't good for us.  Delete it (if it exists)
 	os.Remove(filename)
