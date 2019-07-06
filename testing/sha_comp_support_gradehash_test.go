@@ -31,8 +31,8 @@ type Gradehash struct {
 
 func (g Gradehash) PrintHeader() {
 	fmt.Print("Key For Data Printed while tests run:\n" +
-		"| xxx,xxx :  of the number of hashes performed.  The Lxrhash does the same number of sha hashes as lxr hashes\n" +
-		"| bit-xxx :  This is the Lxrhash, where the Lxrhash (bit or add, or cnt, or dif) is followed by -xxx where xxx\n" +
+		"| xxx,xxx :  of the number of hashes performed.  The test does the same number of sha hashes as lxr hashes\n" +
+		"| bit-xxx :  This is the test, where the test (bit or add, or cnt, or dif) is followed by -xxx where xxx\n" +
 		"               is either sha or lxr.  Like bit-sha or dif-lxr\n" +
 		"| SB      :  How many bytes changed relative to expected number of the bytes that should change from one\n" +
 		"               hash to the next.  You want zero, which means, over time, you have exactly the expected\n" +
@@ -40,7 +40,7 @@ func (g Gradehash) PrintHeader() {
 		"| xx - xx :  We count how many byte values we see. Possible values are 00 to FF.  All should be even, and\n" +
 		"               no byte value should be favored.  We print which byte we saw the most, and which we saw the\n" +
 		"               least. If the bytes change over time, that's good.\n" +
-		"| bits    :  Half the bits should change.  Averaged over all the hashes in the Lxrhash, this is the difference\n" +
+		"| bits    :  Half the bits should change.  Averaged over all the hashes in the test, this is the difference\n" +
 		"               between, say 128 for a 256 bit hash and how many bits have actually changed over the hashes." +
 		"  Stay    :  on average, how many bits remain the same between hashes. Closer to 1/2 the bits in the hash is good.\n" +
 		"             Flip and Stay are picked to keep the difference positive, which is a better way to compare\n" +
