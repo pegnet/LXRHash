@@ -33,7 +33,7 @@ func (lx LXRHash) Hash(src []byte) []byte {
 		s1 = s1<<7 ^ s1>>7 ^ B(as^s1)<<6
 		s1 = s1<<11 ^ s1>>5 ^ B(v2^as>>11^s1)<<2
 
-		hs[idx] = s1^ as ^ hs[idx]<<7^hs[idx]>>13
+		hs[idx] = s1 ^ as ^ hs[idx]<<7 ^ hs[idx]>>13
 
 		as = as<<17 ^ as>>5 ^ s1 ^ B(as^s1^v2)<<9
 		as = as<<13 ^ as>>3 ^ B(as^s1)<<8
