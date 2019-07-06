@@ -53,7 +53,7 @@ func (lx *LXRHash) ReadTable() {
 		panic(err)
 	}
 	userPath := u.HomeDir
-	lxrhashPath := userPath + "/.Lxrhash"
+	lxrhashPath := userPath + "/.lxrhash"
 	err = os.MkdirAll(lxrhashPath, os.ModePerm)
 	if err != nil {
 		panic(fmt.Sprintf("Could not create the directory %s", lxrhashPath))
