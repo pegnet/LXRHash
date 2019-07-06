@@ -59,7 +59,7 @@ func (lx *LXRHash) ReadTable() {
 		panic(fmt.Sprintf("Could not create the directory %s", lxrhashPath))
 	}
 
-	filename := fmt.Sprintf(lxrhashPath+"/lrxhash-seed-%x-passes-%d.size-%d.dat", lx.Seed, lx.Passes, lx.MapSizeBits)
+	filename := fmt.Sprintf(lxrhashPath+"/lrxhash-seed-%x-passes-%d-size-%d.dat", lx.Seed, lx.Passes, lx.MapSizeBits)
 	// Try and load our byte map.
 	println("Reading ByteMap Table ", filename)
 	dat, err := ioutil.ReadFile(filename)

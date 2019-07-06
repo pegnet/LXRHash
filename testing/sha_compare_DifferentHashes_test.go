@@ -16,7 +16,7 @@ func TestDifferentHashes(t *testing.T) {
 
 	Gradehash{}.PrintHeader()
 
-	numTests := 8
+	numTests := 1
 	for i := 0; i < numTests; i++ {
 		go DifferentHashes()
 	}

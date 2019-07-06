@@ -12,11 +12,11 @@ import (
 func TestBitChange(t *testing.T) {
 	rand.Seed(123412341234)
 
-	Lxrhash.Init(Seed, MapSizeBits, HashSize, 1)
+	Lxrhash.Init(Seed, MapSizeBits, HashSize, Passes)
 
 	Gradehash{}.PrintHeader()
 
-	numTests := 8
+	numTests := 1
 	for i := 0; i < numTests; i++ {
 		go BitChangeTest()
 	}

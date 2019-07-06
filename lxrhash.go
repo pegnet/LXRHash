@@ -28,37 +28,40 @@ func (lx LXRHash) Hash(src []byte) []byte {
 	// Requires the previous byte read to process the next byte read.  Forces serial evaluation
 	// and removes the possibility of scheduling byte access.
 	step := func(v2 uint64, idx uint64) {
-		s1 = s1<<9 ^ s1>>7 ^ as ^ B(as)<<7
-		s1 = s1 ^ B(s1^v2)<<3
-		s1 = s1 ^ B(as^s1)<<17
-		s1 = s1 ^ B(v2^as>>11^s1)<<23
+		s1 = s1<<9 ^ s1>>1 ^ as ^ B(as^v2)<<7
+		s1 = s1<<5 ^ s1>>3 ^ B(s1^v2)<<3
+		s1 = s1<<7 ^ s1>>7 ^ B(as^s1)<<6
+		s1 = s1<<11 ^ s1>>5 ^ B(v2^as>>11^s1)<<2
 
-		as = as<<17 ^ as>>1 ^ s1 ^ B(as^v2)<<9
-		as = as ^ B(s1)<<8
-		as = as ^ B(as^s1)<<23
-		as = as ^ B(v2^as>>17^as^s1)<<17
+		hs[idx] = s1^ as ^ hs[idx]<<7^hs[idx]>>13
+
+		as = as<<17 ^ as>>5 ^ s1 ^ B(as^s1^v2)<<9
+		as = as<<13 ^ as>>3 ^ B(as^s1)<<8
+		as = as<<15 ^ as>>7 ^ B(as^s1)<<9
+		as = as<<9 ^ as>>11 ^ B(v2^as>>17^as^s1)<<3
 
 		s1 = s1<<7 ^ s1>>27 ^ as ^ B(as)<<11
-		s1 = s1 ^ B(s1^v2)<<9
-		s1 = s1 ^ B(as^s1)<<33
-		s1 = s1 ^ B(v2^as>>13^as^s1)<<23
+		s1 = s1<<3 ^ s1>>13 ^ B(s1^v2)<<3
+		s1 = s1<<8 ^ s1>>11 ^ B(as^s1)<<11
+		s1 = s1<<6 ^ s1>>9 ^ B(v2^as>>13^as^s1)<<4
 
 		as = as<<23 ^ as>>3 ^ s1 ^ B(as^v2)<<13
-		as = as ^ B(as^s1)<<11
-		as = as ^ B(as^s1)<<40
-		as = as ^ B(v2^as>>9^as^s1)<<17
+		as = as<<17 ^ as>>7 ^ B(as^s1)<<7
+		as = as<<13 ^ as>>5 ^ B(as^s1)<<6
+		as = as<<11 ^ as>>1 ^ B(v2^as>>9^as^s1)<<2
 
-		s1 = s1<<5 ^ s1>>3 ^ as ^ B(as)<<15
-		s1 = s1 ^ B(s1^v2)<<5
-		s1 = s1 ^ B(as^s1)<<43
-		s1 = s1 ^ B(v2^as>>23^as^s1)<<23
+		s1 = s1<<5 ^ s1>>3 ^ as ^ B(as^s1)<<3
+		s1 = s1<<8 ^ s1>>6 ^ B(s1^v2)<<2
+		s1 = s1<<11 ^ s1>>11 ^ B(as^s1)<<3
+		s1 = s1<<7 ^ s1>>5 ^ B(v2^as>>5^as^s1)<<1
 
-		s2 = s2<<3 ^ s2>>17 ^ s1 ^ B(as^s1^v2)<<17
-		s2 = s2 ^ B(s2)<<2
-		s2 = s2 ^ B(as^s1^s2)<<51
-		s2 = s2 ^ B(v2^as>>15^as^s2)<<17
+		s2 = s2<<3 ^ s2>>17 ^ s1 ^ B(as^s1^v2)<<1
+		s2 = s2<<6 ^ s2>>13 ^ B(s2)<<2
+		s2 = s2<<11 ^ s2>>11 ^ B(as^s1^s2)<<6
+		s2 = s2<<4 ^ s2>>23 ^ B(v2^as>>8^as^s2)<<2
 
-		s1 = s1 ^ hs[idx]
+		s1 = s2<<3 ^ s2>>11 ^ hs[idx]
+		as = as<<9 ^ as>>7 ^ s1 ^ B(hs[idx])<<3
 
 		s1, s2, s3 = s3, s1, s2
 	}
@@ -68,7 +71,6 @@ func (lx LXRHash) Hash(src []byte) []byte {
 		step(uint64(v2), idx)
 		// Set one of the hs[] using the last rolling value, the input byte v2,
 		// the mapped byte bytemap, and the previous hs[] value
-		hs[idx] = as ^ hs[idx]
 	}
 
 	// Reduction pass

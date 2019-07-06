@@ -14,7 +14,7 @@ func TestAll(t *testing.T) {
 
 	Gradehash{}.PrintHeader()
 
-	numTests := 3
+	numTests := 1
 	for i := 0; i < numTests; i++ {
 		go BitChangeTest()
 		go BitCountTest()
