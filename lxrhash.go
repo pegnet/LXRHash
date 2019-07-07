@@ -69,8 +69,6 @@ func (lx LXRHash) Hash(src []byte) []byte {
 	for i, v2 := range src {
 		idx := uint64(i) % lx.HashSize
 		step(uint64(v2), idx)
-		// Set one of the hs[] using the last rolling value, the input byte v2,
-		// the mapped byte bytemap, and the previous hs[] value
 	}
 
 	// Reduction pass
@@ -80,11 +78,10 @@ func (lx LXRHash) Hash(src []byte) []byte {
 	// And we do so by doing a bit more bitwise math, and mapping the values through our byte map.
 
 	bytes := make([]byte, lx.HashSize)
-	// Roll over all the hs (32 int64 values)
+	// Roll over all the hs (one int64 value for every byte in the resulting hash) and reduce them to byte values
 	for i, h := range hs {
-		step(h, uint64(i))
-		// Set a byte
-		bytes[i] = b(as) ^ b(hs[i])
+		step(h, uint64(i))          // Step the hash functions and then
+		bytes[i] = b(as) ^ b(hs[i]) // Xor two resulting sequences
 	}
 
 	// Return the resulting hash
