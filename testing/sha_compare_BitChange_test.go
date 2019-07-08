@@ -3,10 +3,11 @@ package testing_test
 import (
 	"crypto/sha256"
 	"fmt"
-	. "github.com/pegnet/LXRHash"
 	"math/rand"
 	"testing"
 	"time"
+
+	. "github.com/pegnet/LXRHash"
 )
 
 func TestBitChange(t *testing.T) {

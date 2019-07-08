@@ -172,9 +172,9 @@ func (g *Gradehash) Report(name string) (hashcount string, report string) {
 		minb,
 		score,
 		avgChanged)
-		report += fmt.Sprintf(" %10x | cnt= %2d ",
-			g.diffHash[:5],
-			g.diffcnt)
+	report += fmt.Sprintf(" %10x | cnt= %2d ",
+		g.diffHash[:5],
+		g.diffcnt)
 	report += spent
 	g.diffchanged = false
 	return
