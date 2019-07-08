@@ -27,7 +27,8 @@ of the hash isn't possible.
 
 LRXHash was origionally developed as a thought experiment, yet the result yeilds some interesting qualities.
 
-* the lookup table can be any size, so making a version that is ASIC resistant is possible by using very big lookup tables.  Such tables blow the processor caches on CPUs and GPUs, making the speed of the hash dependent on random access of memory, not processor power.  Using 1 GB lookup table, a very fast ASIC improving hashing is limited to about ~1/3 of the computational time for the hash.  2/3 of the time is spent waiting for memory access.  
+* the lookup table can be any size, so making a version that is ASIC resistant is possible by using very big lookup tables.  Such tables blow the processor caches on CPUs and GPUs, making the speed of the hash dependent on random access of memory, not processor power.  Using 1 GB lookup table, a very fast ASIC improving hashing is limited to about ~10% of the computational time for the hash.  90% of the time hashing isn't spent on computation but is spent waiting for 
+memory access.  
 * at smaller lookup table sizes where processor caches work, LXRHash can be modified to be very fast.
 * LXRHash would be an easy ASIC design as it only uses counters, decrements, XORs, and shifts. 
 * the hash is trivially altered by changing the size of the lookup table, the seed, size of the hash produced. Change any parameter and you change the space from which hashes are produced.
