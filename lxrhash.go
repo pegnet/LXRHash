@@ -1,7 +1,5 @@
 package lxr
 
-const shift = 10
-
 type LXRHash struct {
 	ByteMap     []byte // Integer Offsets
 	MapSize     uint64 // Size of the translation table
