@@ -16,6 +16,7 @@ func TestAll(t *testing.T) {
 
 	numTests := 1
 	for i := 0; i < numTests; i++ {
+		go BitChangeTest()
 		go BitCountTest()
 		go DifferentHashes()
 		go AddByteTest()

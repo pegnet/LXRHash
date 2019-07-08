@@ -3,11 +3,10 @@ package testing_test
 import (
 	"crypto/sha256"
 	"fmt"
+	. "github.com/pegnet/LXRHash"
 	"math/rand"
 	"testing"
 	"time"
-
-	. "github.com/pegnet/LXRHash"
 )
 
 func TestBitChange(t *testing.T) {
@@ -15,64 +14,18 @@ func TestBitChange(t *testing.T) {
 
 	Lxrhash.Init(Seed, MapSizeBits, HashSize, Passes)
 
-	rand.Seed(123412341234)
-
-	Lxrhash.Init(Seed, MapSizeBits, HashSize, Passes)
-	numTests := 1
-
 	Gradehash{}.PrintHeader()
 
-	ctl := make(chan int, 1)
-	res := make(chan int, 1)
+	numTests := 1
 	for i := 0; i < numTests; i++ {
-		go BitChange(&ctl, &res)
+		go BitChangeTest()
 	}
 
-	time.Sleep(2 * time.Minute)
-
-	fmt.Println("*************************** kill *********************************************")
-	for i := 0; i < numTests; i++ {
-		ctl <- 0
-		<-res
-	}
-
-	fmt.Println("Diff Count")
-	g := Lxrhash.DiffCnt
-	all := int64(0)
-	for i := 0; i < len(g); i += 1 {
-		for j := 0; j < 1 && i+j < len(g); j++ {
-			fmt.Printf("%16x %8d", (i+j)<<10, g[i+j])
-			all += g[i+j]
-		}
-		fmt.Println()
-	}
-	fmt.Println("BCnt ", Lxrhash.BCnt, " counted ", all)
-
-	fmt.Println("Access Count")
-	g = Lxrhash.AccessCnt
-	all = int64(0)
-	for i := 0; i < len(g); i += 1 {
-		for j := 0; j < 1 && i+j < len(g); j++ {
-			fmt.Printf("%16x %8d", (i+j)<<10, g[i+j])
-			all += g[i+j]
-		}
-		fmt.Println()
-	}
-	fmt.Println("BCnt ", Lxrhash.BCnt, " counted ", all)
-
-	fmt.Println("Byte Returned Count")
-	for i := 0; i < 256; i++ {
-		fmt.Printf("%3d %10d\n", i, Lxrhash.BytesRtn[i])
-	}
-
-	fmt.Println("Byte Difference Count")
-	for i := 0; i < 512; i++ {
-		fmt.Printf("%3d %10d\n", i, Lxrhash.DiffBytesRtn[i])
-	}
+	time.Sleep(180 * time.Second)
 
 }
 
-func BitChange(ctl, res *chan int) {
+func BitChangeTest() {
 	var g1 Gradehash
 	var g2 Gradehash
 
@@ -81,14 +34,6 @@ func BitChange(ctl, res *chan int) {
 
 	last := time.Now().Unix()
 	for x := 0; x < 100000000000; x++ {
-
-		select {
-		case <-*ctl:
-			*res <- 0
-			return
-		default:
-		}
-
 		// Get a new buffer of data.
 		buf = Getbuf()
 

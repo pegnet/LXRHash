@@ -3,20 +3,15 @@ package lxr
 const shift = 10
 
 type LXRHash struct {
-	ByteMap      []byte     // Integer Offsets
-	DiffCnt      []int64    // Count range of differences
-	AccessCnt    []int64    // Count range of accesses
-	DiffBytesRtn [512]int64 // Difference between the last byte returned and this one
-	BytesRtn     [256]int64 // The byte returned
-	BCnt         int64      // Number of bytes returned
-	MapSize      uint64     // Size of the translation table
-	MapSizeBits  uint64     // Size of the ByteMap in Bits
-	Passes       uint64     // Passes to generate the rand table
-	Seed         uint64     // An arbitrary number used to create the tables.
-	HashSize     uint64     // Number of bytes in the hash
+	ByteMap     []byte // Integer Offsets
+	MapSize     uint64 // Size of the translation table
+	MapSizeBits uint64 // Size of the ByteMap in Bits
+	Passes      uint64 // Passes to generate the rand table
+	Seed        uint64 // An arbitrary number used to create the tables.
+	HashSize    uint64 // Number of bytes in the hash
 }
 
-func (lx *LXRHash) Hash(src []byte) []byte {
+func (lx LXRHash) Hash(src []byte) []byte {
 
 	// Keep the byte intermediate results as int64 values until reduced.
 	hs := make([]uint64, lx.HashSize)
@@ -28,30 +23,7 @@ func (lx *LXRHash) Hash(src []byte) []byte {
 	// Since MapSize is specified in bits, the index mask is the size-1
 	mk := lx.MapSize - 1
 
-	if len(lx.DiffCnt) < int(lx.MapSize>>shift) {
-		lx.DiffCnt = make([]int64, lx.MapSize>>shift)
-		lx.AccessCnt = make([]int64, lx.MapSize>>shift)
-	}
-
-	var delta, last uint64
-	var lastb int
-	B := func(v uint64) uint64 {
-		lx.BCnt++
-		idx := v & mk
-		if last > idx {
-			delta = last - idx
-		} else {
-			delta = idx - last
-		}
-		lx.DiffCnt[delta>>shift]++
-		lx.AccessCnt[idx>>shift]++
-		b := lx.ByteMap[idx]
-		lx.BytesRtn[b]++
-		lx.DiffBytesRtn[lastb-int(b)+256]++
-		lastb = int(b)
-		return uint64(b)
-	}
-
+	B := func(v uint64) uint64 { return uint64(lx.ByteMap[v&mk]) }
 	b := func(v uint64) byte { return byte(B(v)) }
 
 	// Define a function to move the state by one byte.  This is not intended to be fast

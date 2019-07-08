@@ -8,7 +8,7 @@ var Seed = uint64(0xFAFAECECFAFAECEC)
 var MapSizeBits = uint64(25)
 
 // Default number of shuffles of the tables
-var Passes = uint64(10)
+var Passes = uint64(5)
 
 // Default hash size.
 var HashSize = uint64(256)
