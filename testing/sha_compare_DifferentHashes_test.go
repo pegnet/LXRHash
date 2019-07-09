@@ -3,10 +3,11 @@ package testing_test
 import (
 	"crypto/sha256"
 	"fmt"
-	. "github.com/pegnet/LXRHash"
 	"math/rand"
 	"testing"
 	"time"
+
+	. "github.com/pegnet/LXRHash"
 )
 
 func TestDifferentHashes(t *testing.T) {
@@ -29,14 +30,12 @@ func DifferentHashes() {
 	var g1 Gradehash
 	var g2 Gradehash
 
-	buf := Getbuf()
-
 	last := time.Now().Unix()
 	cnt := 0
 	for i := 1; i < 100000000000; i++ {
 
 		// Get a new buffer of data.
-		buf = Getbuf()
+		buf := Getbuf(1024)
 
 		g1.Start()
 		sv := sha256.Sum256(buf)

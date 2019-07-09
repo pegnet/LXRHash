@@ -3,10 +3,11 @@ package testing_test
 import (
 	"crypto/sha256"
 	"fmt"
-	. "github.com/pegnet/LXRHash"
 	"math/rand"
 	"testing"
 	"time"
+
+	. "github.com/pegnet/LXRHash"
 )
 
 func TestAddByte(t *testing.T) {
@@ -28,12 +29,11 @@ func AddByteTest() {
 	var g1 Gradehash
 	var g2 Gradehash
 
-	buf := Getbuf()
 	cnt := 0
 	last := time.Now().Unix()
 	for x := 0; x < 100000000000; x++ {
 		// Get a new buffer of data.
-		buf = []byte{byte(x)}
+		buf := []byte{byte(x)}
 
 		for i := 0; i < 1000; i++ {
 			cnt++
