@@ -1,10 +1,15 @@
-package lxr
+package testing_test
 
 import (
+	rand2 "crypto/rand"
 	"fmt"
-	"github.com/dustin/go-humanize"
 	"time"
+
+	"github.com/dustin/go-humanize"
 )
+
+// Routines for collecting stats on Hashing algorithms and comparing them to other
+// implementations and libraries.
 
 var runStart int64
 
@@ -108,12 +113,6 @@ func (g *Gradehash) Stop() {
 
 // return the count of the number of hashes performed.
 func (g *Gradehash) Report(name string) (hashcount string, report string) {
-	now := time.Now().Unix()
-	secs := now - runStart
-	hrs := secs / 60 / 60
-	secs = secs - hrs*60*60
-	mins := secs / 60
-	secs = secs - mins*60
 
 	if g.numhashes == 0 {
 		report = fmt.Sprintln("no report data")
@@ -168,11 +167,9 @@ func (g *Gradehash) Report(name string) (hashcount string, report string) {
 		minb,
 		score,
 		avgChanged)
-	if len(g.diffsrc) > 16 && len(g.diffHash) > 16 {
-		report += fmt.Sprintf(" %10x | cnt= %2d ",
-			g.diffHash[:5],
-			g.diffcnt)
-	}
+	report += fmt.Sprintf(" %10x | cnt= %2d ",
+		g.diffHash[:5],
+		g.diffcnt)
 	report += spent
 	g.diffchanged = false
 	return
@@ -189,4 +186,14 @@ func Difficulty(hash []byte) uint64 {
 		diff = diff<<8 + uint64(hash[i])
 	}
 	return diff
+}
+
+func Getbuf(length int) []byte {
+	//buflen := minsample + rand.Intn(maxsample)
+	nbuf := make([]byte, length)
+	_, err := rand2.Reader.Read(nbuf)
+	if err != nil {
+		panic(err)
+	}
+	return nbuf
 }
