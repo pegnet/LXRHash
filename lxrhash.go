@@ -24,6 +24,13 @@ func (lx LXRHash) Hash(src []byte) []byte {
 	B := func(v uint64) uint64 { return uint64(lx.ByteMap[v&mk]) }
 	b := func(v uint64) byte { return byte(B(v)) }
 
+	faststep := func(v2 uint64, idx uint64) {
+		as = idx<<1 ^ idx>>3 ^ as<<7 ^ as>>5
+		s1 = s1<<9 ^ s1>>3 ^ as
+		hs[idx] = s1 ^ as
+		as, s1, s2, s3 = s3, as, s1, s2
+	}
+
 	// Define a function to move the state by one byte.  This is not intended to be fast
 	// Requires the previous byte read to process the next byte read.  Forces serial evaluation
 	// and removes the possibility of scheduling byte access.
@@ -68,7 +75,18 @@ func (lx LXRHash) Hash(src []byte) []byte {
 		s1, s2, s3 = s3, s1, s2
 	}
 
-	var idx uint64
+	idx := uint64(0)
+	// Fast spin to prevent caching state
+	for _, v2 := range src {
+		if idx >= lx.HashSize { // Use an if to avoid modulo math
+			idx = 0
+		}
+		faststep(uint64(v2), idx)
+		idx++
+	}
+
+	idx = 0
+	// Actual work to compute the hash
 	for _, v2 := range src {
 		if idx >= lx.HashSize { // Use an if to avoid modulo math
 			idx = 0

@@ -1,10 +1,11 @@
 package testing_test
 
 import (
-	. "github.com/pegnet/LXRHash"
 	"math/rand"
 	"testing"
 	"time"
+
+	. "github.com/pegnet/LXRHash"
 )
 
 func TestAll(t *testing.T) {
@@ -22,6 +23,6 @@ func TestAll(t *testing.T) {
 		go AddByteTest()
 	}
 
-	time.Sleep(180 * time.Second)
+	time.Sleep(550 * time.Second)
 
 }
