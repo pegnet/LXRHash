@@ -74,16 +74,17 @@ func (lx LXRHash) Hash(src []byte) []byte {
 		s1, s2, s3 = s3, s1, s2
 	}
 
-	var idx uint64
-	_ = faststep
+	idx := uint64(0)
 	// Fast spin to prevent caching state
 	for _, v2 := range src {
 		if idx >= lx.HashSize { // Use an if to avoid modulo math
 			idx = 0
 		}
 		faststep(uint64(v2), idx)
+		idx++
 	}
 
+	idx = 0
 	// Actual work to compute the hash
 	for _, v2 := range src {
 		if idx >= lx.HashSize { // Use an if to avoid modulo math
