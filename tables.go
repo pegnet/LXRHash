@@ -53,7 +53,7 @@ func (lx *LXRHash) ReadTable() {
 		panic(err)
 	}
 	userPath := u.HomeDir
-	lxrhashPath := userPath+"/.lxrhash"
+	lxrhashPath := userPath + "/.lxrhash"
 	_ = os.MkdirAll(lxrhashPath, os.ModePerm)
 
 	filename := fmt.Sprintf(lxrhashPath+"/lrxhash-seed-%x-passes-%d.size-%d.dat", lx.Seed, lx.Passes, lx.MapSizeBits)

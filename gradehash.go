@@ -2,8 +2,9 @@ package lxr
 
 import (
 	"fmt"
-	"github.com/dustin/go-humanize"
 	"time"
+
+	"github.com/dustin/go-humanize"
 )
 
 var runStart int64
@@ -108,12 +109,6 @@ func (g *Gradehash) Stop() {
 
 // return the count of the number of hashes performed.
 func (g *Gradehash) Report(name string) (hashcount string, report string) {
-	now := time.Now().Unix()
-	secs := now - runStart
-	hrs := secs / 60 / 60
-	secs = secs - hrs*60*60
-	mins := secs / 60
-	secs = secs - mins*60
 
 	if g.numhashes == 0 {
 		report = fmt.Sprintln("no report data")
