@@ -59,7 +59,7 @@ func (lx *LXRHash) ReadTable() {
 		panic(fmt.Sprintf("Could not create the directory %s", lxrhashPath))
 	}
 
-	filename := fmt.Sprintf(lxrhashPath+"/lrxhash-seed-%x-passes-%d.size-%d.dat", lx.Seed, lx.Passes, lx.MapSizeBits)
+	filename := fmt.Sprintf(lxrhashPath+"/lrxhash-seed-%x-passes-%d-size-%d.dat", lx.Seed, lx.Passes, lx.MapSizeBits)
 	// Try and load our byte map.
 	println("Reading ByteMap Table ", filename)
 	dat, err := ioutil.ReadFile(filename)
@@ -78,7 +78,7 @@ func (lx *LXRHash) ReadTable() {
 
 // WriteTable
 // When playing around with the algorithm, it is nice to generate files and use them off the disk.  This
-// allows the user to do that, and save the cost of regeneration between test runs.
+// allows the user to do that, and save the cost of regeneration between Lxrhash runs.
 func (lx *LXRHash) WriteTable(filename string) {
 	// Ah, the data file isn't good for us.  Delete it (if it exists)
 	os.Remove(filename)

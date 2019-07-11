@@ -1,11 +1,15 @@
-package lxr
+package testing_test
 
 import (
+	rand2 "crypto/rand"
 	"fmt"
 	"time"
 
 	"github.com/dustin/go-humanize"
 )
+
+// Routines for collecting stats on Hashing algorithms and comparing them to other
+// implementations and libraries.
 
 var runStart int64
 
@@ -163,11 +167,9 @@ func (g *Gradehash) Report(name string) (hashcount string, report string) {
 		minb,
 		score,
 		avgChanged)
-	if len(g.diffsrc) > 16 && len(g.diffHash) > 16 {
-		report += fmt.Sprintf(" %10x | cnt= %2d ",
-			g.diffHash[:5],
-			g.diffcnt)
-	}
+	report += fmt.Sprintf(" %10x | cnt= %2d ",
+		g.diffHash[:5],
+		g.diffcnt)
 	report += spent
 	g.diffchanged = false
 	return
@@ -184,4 +186,14 @@ func Difficulty(hash []byte) uint64 {
 		diff = diff<<8 + uint64(hash[i])
 	}
 	return diff
+}
+
+func Getbuf(length int) []byte {
+	//buflen := minsample + rand.Intn(maxsample)
+	nbuf := make([]byte, length)
+	_, err := rand2.Reader.Read(nbuf)
+	if err != nil {
+		panic(err)
+	}
+	return nbuf
 }
