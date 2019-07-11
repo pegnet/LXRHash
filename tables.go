@@ -54,7 +54,10 @@ func (lx *LXRHash) ReadTable() {
 	}
 	userPath := u.HomeDir
 	lxrhashPath := userPath + "/.lxrhash"
-	_ = os.MkdirAll(lxrhashPath, os.ModePerm)
+	err = os.MkdirAll(lxrhashPath, os.ModePerm)
+	if err != nil {
+		panic(fmt.Sprintf("Could not create the directory %s", lxrhashPath))
+	}
 
 	filename := fmt.Sprintf(lxrhashPath+"/lrxhash-seed-%x-passes-%d.size-%d.dat", lx.Seed, lx.Passes, lx.MapSizeBits)
 	// Try and load our byte map.
@@ -122,7 +125,7 @@ func (lx *LXRHash) GenerateTable() {
 	period := start
 	// Fill the ByteMap with bytes ranging from 0 to 255.  As long as Mapsize%256 == 0, this
 	// looping and masking works just fine.
-	println("Initalize the Table")
+	println("Initialize the Table")
 	for i := range lx.ByteMap {
 		if (i+1)%1000 == 0 && time.Now().Unix()-period > 10 {
 			println(" Index ", i+1, " of ", len(lx.ByteMap))
