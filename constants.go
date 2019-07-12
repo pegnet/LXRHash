@@ -1,17 +1,12 @@
 package lxr
 
-// Default Seed used by the PegNet, the first application to use
-// LXRHash for Proof of Work
-var Seed = uint64(0xFAFAECECFAFAECEC)
-
-// Default table size used by the PegNet
-var MapSizeBits = uint64(25)
-
-// Default number of shuffles of the tables
-var Passes = uint64(5)
-
-// Default hash size.
-var HashSize = uint64(256)
+// Default Seed
+const (
+	Seed        = uint64(0xFAFAECECFAFAECEC) // The seed defines a "hash space".
+	MapSizeBits = uint64(30)                 // Default table size
+	Passes      = uint64(5)                  // Default number of shuffles of the tables
+	HashSize    = uint64(256)                // Default hash size.
+)
 
 var Lxrhash LXRHash
 
