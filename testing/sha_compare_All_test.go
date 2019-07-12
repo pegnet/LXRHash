@@ -17,7 +17,7 @@ func TestAll(t *testing.T) {
 
 	Gradehash{}.PrintHeader()
 
-	numTests := 2
+	numTests := 1
 	for i := 0; i < numTests; i++ {
 		go BitChangeTest()
 		go BitCountTest()
@@ -25,6 +25,6 @@ func TestAll(t *testing.T) {
 		go AddByteTest()
 	}
 
-	time.Sleep(5500 * time.Second)
+	time.Sleep(550 * time.Second)
 
 }
