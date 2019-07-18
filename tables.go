@@ -16,6 +16,18 @@ const (
 	firstv    = uint64(3523455478921636871)
 )
 
+// Verbose enables or disables the output of progress indicators to the console
+func (lx *LXRHash) Verbose(val bool) {
+	lx.verbose = val
+}
+
+// Log is a wrapper function that only prints information when verbose is enabled
+func (lx *LXRHash) Log(msg string) {
+	if lx.verbose {
+		fmt.Println(msg)
+	}
+}
+
 // Init()
 // We use our own algorithm for initializing the map struct.  This is an fairly large table of
 // byte values we use to map bytes to other byte values to enhance the avalanche nature of the hash
@@ -25,9 +37,7 @@ const (
 // MapSizeBits is the number of bits to use for the MapSize, i.e. 10 = mapsize of 1024
 // HashSize is the number of bits in the hash; truncated to a byte bountry
 // Passes is the number of shuffles of the ByteMap performed.  Each pass shuffles all byte values in the map
-
 func (lx *LXRHash) Init(Seed, MapSizeBits, HashSize, Passes uint64) {
-
 	if MapSizeBits < 8 {
 		panic(fmt.Sprintf("Bad Map Size in Bits.  Must be between 8 and 34 bits, was %d", MapSizeBits))
 	}
@@ -61,19 +71,20 @@ func (lx *LXRHash) ReadTable() {
 
 	filename := fmt.Sprintf(lxrhashPath+"/lrxhash-seed-%x-passes-%d-size-%d.dat", lx.Seed, lx.Passes, lx.MapSizeBits)
 	// Try and load our byte map.
-	println("Reading ByteMap Table ", filename)
-	dat, err := ioutil.ReadFile(filename)
+	lx.Log(fmt.Sprintf("Reading ByteMap Table %s", filename))
 
+	start := time.Now()
+	dat, err := ioutil.ReadFile(filename)
 	// If loading fails, or it is the wrong size, generate it.  Otherwise just use it.
 	if err != nil || len(dat) != int(lx.MapSize) {
-		println("Table not found, Generating ByteMap Table ")
+		lx.Log("Table not found, Generating ByteMap Table")
 		lx.GenerateTable()
-		fmt.Println("writeing ByteMap Table ")
+		lx.Log("Writing ByteMap Table ")
 		lx.WriteTable(filename)
-		fmt.Println("Done")
 	} else {
 		lx.ByteMap = dat
 	}
+	lx.Log(fmt.Sprintf("Done. Total time taken: %s", time.Since(start)))
 }
 
 // WriteTable
@@ -121,34 +132,29 @@ func (lx *LXRHash) GenerateTable() {
 		return int64(uint64(offset) & uint64(MapMask))
 	}
 
-	start := time.Now().Unix()
-	period := start
 	// Fill the ByteMap with bytes ranging from 0 to 255.  As long as Mapsize%256 == 0, this
 	// looping and masking works just fine.
-	println("Initialize the Table")
+	lx.Log("Initializing the Table")
 	for i := range lx.ByteMap {
-		if (i+1)%1000 == 0 && time.Now().Unix()-period > 10 {
-			println(" Index ", i+1, " of ", len(lx.ByteMap))
-			period = time.Now().Unix()
-		}
 		lx.ByteMap[i] = byte(i)
 	}
 
 	// Now what we want to do is just mix it all up.  Take every byte in the ByteMap list, and exchange it
 	// for some other byte in the ByteMap list. Note that we do this over and over, mixing and more mixing
 	// the ByteMap, but maintaining the ratio of each byte value in the ByteMap list.
-	println("Shuffling the Table")
+	lx.Log("Shuffling the Table")
+	period := time.Now().Unix()
 	for loops := 0; loops < int(lx.Passes); loops++ {
-		fmt.Println("Pass ", loops)
+		lx.Log(fmt.Sprintf("Pass %d", loops))
 		for i := range lx.ByteMap {
 			if (i+1)%1000 == 0 && time.Now().Unix()-period > 10 {
-				fmt.Printf(" Index %10d Meg of %10d Meg -- Pass is %5.1f%% Complete\n", i/1024000, len(lx.ByteMap)/1024000, 100*float64(i)/float64(len(lx.ByteMap)))
+				lx.Log(fmt.Sprintf(" Index %10d Meg of %10d Meg -- Pass is %5.1f%% Complete", i/1024000, len(lx.ByteMap)/1024000, 100*float64(i)/float64(len(lx.ByteMap))))
 				period = time.Now().Unix()
 			}
 
 			j := rand(uint64(i))
 			lx.ByteMap[i], lx.ByteMap[j] = lx.ByteMap[j], lx.ByteMap[i]
 		}
-		fmt.Printf(" Index %10d Meg of %10d Meg -- Pass is %5.1f%% Complete\n", len(lx.ByteMap)/1024000, len(lx.ByteMap)/1024000, float64(100))
+		lx.Log(fmt.Sprintf(" Index %10d Meg of %10d Meg -- Pass is %5.1f%% Complete", len(lx.ByteMap)/1024000, len(lx.ByteMap)/1024000, float64(100)))
 	}
 }
