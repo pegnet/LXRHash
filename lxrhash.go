@@ -1,5 +1,6 @@
 package lxr
 
+// LXRHash holds one instance of a hash function with a specific seed and map size
 type LXRHash struct {
 	ByteMap     []byte // Integer Offsets
 	MapSize     uint64 // Size of the translation table
@@ -9,8 +10,8 @@ type LXRHash struct {
 	HashSize    uint64 // Number of bytes in the hash
 }
 
+// Hash takes the arbitrary input and returns the resulting hash of length HashSize
 func (lx LXRHash) Hash(src []byte) []byte {
-
 	// Keep the byte intermediate results as int64 values until reduced.
 	hs := make([]uint64, lx.HashSize)
 	// as accumulates the state as we walk through applying the source data through the lookup map
