@@ -9,9 +9,3 @@ const (
 	Passes      = uint64(5)                  // Default number of shuffles of the tables
 	HashSize    = uint64(256)                // Default hash size.
 )
-
-var Lxrhash LXRHash
-
-func init() {
-	Lxrhash.Init(Seed, MapSizeBits, HashSize, Passes)
-}

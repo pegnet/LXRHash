@@ -9,6 +9,7 @@ type LXRHash struct {
 	Passes      uint64 // Passes to generate the rand table
 	Seed        uint64 // An arbitrary number used to create the tables.
 	HashSize    uint64 // Number of bytes in the hash
+	verbose     bool
 }
 
 func (lx LXRHash) Hash(src []byte) []byte {
