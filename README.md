@@ -14,7 +14,7 @@ processor or computer architecture. The size of the table can be increased to co
 The number of bytes in the resulting hash can be increased for more security (greater hash space), without significantly
 more processing time.  Note, while this approach *can* be fast, this implemenation isn't.  The use case 
 is aimed at Proof of Work (PoW), not cryptographic hashing.
-  
+
 The Lookup 
 -------
 The look up table has equal numbers of every byte value, and shuffled deterministically.  When hashing, the bytes 
@@ -37,3 +37,11 @@ memory access.
 While this hash may be reasonable for use as PoW in mining on an immutable ledger that provides its own security, 
 not nearly enough testing has been done to use as a fundamental part in cryptography or security.  For fun, it 
 would be cool to do such testing.
+
+## Testing
+To run the LXRHash benchmark test:
+```shell
+cd testing
+go test
+```
+
