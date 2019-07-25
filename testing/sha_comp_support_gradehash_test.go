@@ -33,25 +33,27 @@ type Gradehash struct {
 }
 
 func (g Gradehash) PrintHeader() {
-	fmt.Print("Key For Data Printed while tests run:\n" +
-		"| xxx,xxx :  of the number of hashes performed.  The test does the same number of sha hashes as lxr hashes\n" +
+	fmt.Print("------------------------------------\n"+
+		"Key For Data Printed while tests run:\n\n" +
+		"| xxx,xxx :  of the number of hashes performed.  The test does the same number of sha hashes as lxr hashes\n\n" +
 		"| bit-xxx :  This is the test, where the test (bit or add, or cnt, or dif) is followed by -xxx where xxx\n" +
-		"               is either sha or lxr.  Like bit-sha or dif-lxr\n" +
+		"               is either sha or lxr.  Like bit-sha or dif-lxr\n\n" +
 		"| SB      :  How many bytes changed relative to expected number of the bytes that should change from one\n" +
 		"               hash to the next.  You want zero, which means, over time, you have exactly the expected\n" +
-		"               number of bytes changing.\n" +
+		"               number of bytes changing\n\n" +
 		"| xx - xx :  We count how many byte values we see. Possible values are 00 to FF.  All should be even, and\n" +
 		"               no byte value should be favored.  We print which byte we saw the most, and which we saw the\n" +
-		"               least. If the bytes change over time, that's good.\n" +
+		"               least. If the bytes change over time, that's good\n\n" +
 		"| bits    :  Half the bits should change.  Averaged over all the hashes in the test, this is the difference\n" +
-		"               between, say 128 for a 256 bit hash and how many bits have actually changed over the hashes." +
-		"  Stay    :  on average, how many bits remain the same between hashes. Closer to 1/2 the bits in the hash is good.\n" +
-		"             Flip and Stay are picked to keep the difference positive, which is a better way to compare\n" +
+		"               between, say 128 for a 256 bit hash and how many bits have actually changed over the hashes\n\n" +
+		"| score    :  On average, how many bits remain the same between hashes. Closer to 1/2 the bits in the hash is good\n" +
+		"             Flip and Stay are picked to keep the difference positive, which is a better way to compare\n\n" +
 		"| ffxxxxx :  The maximum unsigned high order eight bytes of the hash.  Like mining.  Both sha and lxr should\n" +
-		"               should kinda take the same number of hashes to get kinda the same-ish max value\n" +
-		"| cnt     :  Number of times we found a bigger hash in this run\n" +
+		"               should kinda take the same number of hashes to get kinda the same-ish max value\n\n" +
+		"| cnt     :  Number of times we found a bigger hash in this run\n\n" +
 		"| xxx hps :  We take the time executing sha and the time executing lxr and calculate a rough estimate of\n" +
-		"               how many hashes per second we could be executing them.  Generally lxr is way slower.\n\n")
+		"               how many hashes per second we could be executing them.  Generally lxr is way slower\n"+
+		"------------------------------------\n")
 }
 
 func (g *Gradehash) AddHash(src []byte, hash []byte) {
