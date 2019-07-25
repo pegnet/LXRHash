@@ -5,17 +5,12 @@ package testing_test
 import (
 	"crypto/sha256"
 	"fmt"
-	"math/rand"
 	"testing"
 	"time"
-
-	. "github.com/pegnet/LXRHash"
 )
 
 func TestDifferentHashes(t *testing.T) {
-	rand.Seed(123412341234)
-
-	Lxrhash.Init(Seed, MapSizeBits, HashSize, Passes)
+	LX.Init(Seed, MapSizeBits, HashSize, Passes)
 
 	Gradehash{}.PrintHeader()
 
@@ -24,7 +19,7 @@ func TestDifferentHashes(t *testing.T) {
 		go DifferentHashes()
 	}
 
-	time.Sleep(180 * time.Second)
+	time.Sleep(20 * time.Second)
 
 }
 
@@ -45,7 +40,7 @@ func DifferentHashes() {
 		g1.AddHash(buf, sv[:])
 
 		g2.Start()
-		wv := Lxrhash.Hash(buf)
+		wv := LX.Hash(buf)
 		g2.Stop()
 		g2.AddHash(buf, wv)
 		cnt++
