@@ -18,6 +18,18 @@ const (
 	firstv    = uint64(3523455478921636871)
 )
 
+// Verbose enables or disables the output of progress indicators to the console
+func (lx *LXRHash) Verbose(val bool) {
+	lx.verbose = val
+}
+
+// Log is a wrapper function that only prints information when verbose is enabled
+func (lx *LXRHash) Log(msg string) {
+	if lx.verbose {
+		fmt.Println(msg)
+	}
+}
+
 // Init initializes the hash with the given values
 //
 // We use our own algorithm for initializing the map struct.  This is an fairly large table of
