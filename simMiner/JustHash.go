@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -15,14 +16,13 @@ var now = time.Now()
 
 var prt chan string
 
-func mine(useLXR bool, data []byte) uint64 {
+var LX *lxr.LXRHash
 
-	LX := new(lxr.LXRHash)
-	LX.Init(lxr.Seed, lxr.MapSizeBits, lxr.HashSize, lxr.Passes)
+func mine(useLXR bool, data []byte) uint64 {
 
 	cd := uint64(0)
 	dlen := len(data)
-	for i := 0; i < 100000000; i++ {
+	for i := 0; ; i++ {
 		data = data[:dlen]
 		for b := i; b > 0; b = b >> 8 {
 			data = append(data, byte(b))
@@ -54,15 +54,47 @@ func mine(useLXR bool, data []byte) uint64 {
 
 func main() {
 
-	if len(os.Args) < 2 {
-		fmt.Println("Usage:\n\nJustHash <hash>\n\n<hash> is equal to LXRHash to sim mine LXRHash\n<hash> is equal to Sha256 to sim mine Sha256")
+	leave := func() {
+		fmt.Println("Usage:\n\n" +
+			"simMiner <hash> [bits]\n\n" +
+			"<hash> is equal to LXRHash to sim mine LXRHash\n" +
+			"<hash> is equal to Sha256 to sim mine Sha256\n" +
+			"[bits] defaults to 30, but lower numbers can be quicker to initialize")
 		os.Exit(0)
+	}
+
+	if len(os.Args) < 2 {
+		leave()
 	}
 
 	h := strings.ToLower(os.Args[1])
 	hash := h == "lxrhash"
 	if !hash && h != "sha256" {
-		fmt.Println("Usage:\n\nJustHash <hash>\n\n<hash> is equal to LXRHash to sim mine LXRHash\n<hash> is equal to Sha256 to sim mine Sha256")
+		leave()
+	}
+
+	bits := lxr.MapSizeBits
+	if hash {
+		if len(os.Args) == 3 {
+			b, err := strconv.Atoi(os.Args[2])
+			if err != nil {
+				fmt.Println(err)
+				leave()
+			}
+			if b > 40 || b < 8 {
+				fmt.Println("Bits specified must be at least 8 and less than or equal to 40.  40 bits is 1 TB")
+			}
+			bits = uint64(b)
+		}
+
+		LX = new(lxr.LXRHash)
+		LX.Init(lxr.Seed, bits, lxr.HashSize, lxr.Passes)
+	}
+
+	if hash {
+		fmt.Println("Using LXRHash with a ", bits, " bit addressable ByteMap")
+	} else {
+		fmt.Println("Using Sha256")
 	}
 
 	prt = make(chan string, 500)
