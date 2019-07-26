@@ -45,7 +45,7 @@ func mine(useLXR bool, data []byte) uint64 {
 			cd = d
 			running := time.Since(now)
 			hps := float64(total) / running.Seconds()
-			prt <- fmt.Sprintf("%10d %16x %8x %10.1f hps\n", total, cd, i, hps)
+			prt <- fmt.Sprintf("%10d %16x %8x %10.0f hps\n", total, cd, i, hps)
 
 		}
 	}
@@ -86,7 +86,7 @@ func main() {
 		time.Sleep(10 * time.Second)
 		running := time.Since(now)
 		hps := float64(total) / running.Seconds()
-		prt <- fmt.Sprintf("%10d %16s %8s %10.1f hps\n", total, "", "", hps)
+		prt <- fmt.Sprintf("%10d %16s %8s %10.0f hps\n", total, "", "", hps)
 
 	}
 }
