@@ -3,6 +3,8 @@ package main
 import (
 	"crypto/sha256"
 	"fmt"
+	"os"
+	"strings"
 	"time"
 
 	lxr "github.com/pegnet/LXRHash"
@@ -48,16 +50,28 @@ func mine(useLXR bool, data []byte) uint64 {
 }
 
 func main() {
-	prt = make(chan string, 500)
-	go mine(true, []byte("000000000200000000020000000002000"))
-	go mine(true, []byte("000000000200000000020000000002001"))
-	go mine(true, []byte("000000000200000000020000000002002"))
-	go mine(true, []byte("000000000200000000020000000002003"))
 
-	go mine(true, []byte("000000000200000000020000000002004"))
-	go mine(true, []byte("000000000200000000020000000002005"))
-	go mine(true, []byte("000000000200000000020000000002006"))
-	go mine(true, []byte("000000000200000000020000000002006"))
+	if len(os.Args) < 2 {
+		fmt.Println("Usage:\n\nJustHash <hash>\n\n<hash> is equal to LXRHash to sim mine LXRHash\n<hash> is equal to Sha256 to sim mine Sha256")
+		os.Exit(0)
+	}
+
+	h := strings.ToLower(os.Args[1])
+	hash := h == "lxrhash"
+	if !hash && h != "sha256" {
+		fmt.Println("Usage:\n\nJustHash <hash>\n\n<hash> is equal to LXRHash to sim mine LXRHash\n<hash> is equal to Sha256 to sim mine Sha256")
+	}
+
+	prt = make(chan string, 500)
+	go mine(hash, []byte("000000000200000000020000000002000"))
+	go mine(hash, []byte("000000000200000000020000000002001"))
+	go mine(hash, []byte("000000000200000000020000000002002"))
+	go mine(hash, []byte("000000000200000000020000000002003"))
+
+	go mine(hash, []byte("000000000200000000020000000002004"))
+	go mine(hash, []byte("000000000200000000020000000002005"))
+	go mine(hash, []byte("000000000200000000020000000002006"))
+	go mine(hash, []byte("000000000200000000020000000002006"))
 
 	for {
 		select {
