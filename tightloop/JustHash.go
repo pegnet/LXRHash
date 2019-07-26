@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"time"
 
@@ -12,18 +13,25 @@ var now = time.Now()
 
 var prt chan string
 
-func mine(data []byte) uint64 {
+func mine(useLXR bool, data []byte) uint64 {
+
+	LX := new(lxr.LXRHash)
+	LX.Init(lxr.Seed, lxr.MapSizeBits, lxr.HashSize, lxr.Passes)
 
 	cd := uint64(0)
 	dlen := len(data)
 	for i := 0; i < 100000000; i++ {
-		total++
 		data = data[:dlen]
 		for b := i; b > 0; b = b >> 8 {
 			data = append(data, byte(b))
 		}
-		hash := lxr.Lxrhash.Hash(data)
-		//hash := sha256.Sum256(data)
+		var hash []byte
+		if useLXR {
+			hash = LX.Hash(data)
+		} else {
+			h := sha256.Sum256(data)
+			hash = h[:]
+		}
 		d := uint64(0)
 		for i := 0; i < 8; i++ {
 			d = d<<8 + uint64(hash[i])
@@ -41,15 +49,15 @@ func mine(data []byte) uint64 {
 
 func main() {
 	prt = make(chan string, 500)
-	go mine([]byte("000000000200000000020000000002000"))
-	go mine([]byte("000000000200000000020000000002001"))
-	go mine([]byte("000000000200000000020000000002002"))
-	go mine([]byte("000000000200000000020000000002003"))
+	go mine(true, []byte("000000000200000000020000000002000"))
+	go mine(true, []byte("000000000200000000020000000002001"))
+	go mine(true, []byte("000000000200000000020000000002002"))
+	go mine(true, []byte("000000000200000000020000000002003"))
 
-	go mine([]byte("000000000200000000020000000002004"))
-	go mine([]byte("000000000200000000020000000002005"))
-	go mine([]byte("000000000200000000020000000002006"))
-	go mine([]byte("000000000200000000020000000002006"))
+	go mine(true, []byte("000000000200000000020000000002004"))
+	go mine(true, []byte("000000000200000000020000000002005"))
+	go mine(true, []byte("000000000200000000020000000002006"))
+	go mine(true, []byte("000000000200000000020000000002006"))
 
 	for {
 		select {
