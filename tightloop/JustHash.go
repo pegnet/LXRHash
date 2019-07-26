@@ -34,6 +34,9 @@ func mine(useLXR bool, data []byte) uint64 {
 			h := sha256.Sum256(data)
 			hash = h[:]
 		}
+
+		total++
+
 		d := uint64(0)
 		for i := 0; i < 8; i++ {
 			d = d<<8 + uint64(hash[i])
