@@ -1,3 +1,5 @@
+// Copyright (c) of parts are held by the various contributors
+// Licensed under the MIT License. See LICENSE file in the project root for full license information.
 package testing_test
 
 import (
@@ -6,14 +8,10 @@ import (
 	"math/rand"
 	"testing"
 	"time"
-
-	. "github.com/pegnet/LXRHash"
 )
 
 func TestAddByte(t *testing.T) {
-	rand.Seed(123412341234)
-
-	Lxrhash.Init(Seed, MapSizeBits, HashSize, Passes)
+	LX.Init(Seed, MapSizeBits, HashSize, Passes)
 
 	Gradehash{}.PrintHeader()
 
@@ -22,7 +20,7 @@ func TestAddByte(t *testing.T) {
 		go AddByteTest()
 	}
 
-	time.Sleep(180 * time.Second)
+	time.Sleep(20 * time.Second)
 }
 
 func AddByteTest() {
@@ -44,7 +42,7 @@ func AddByteTest() {
 			g1.AddHash(buf, sv[:])
 
 			g2.Start()
-			wv := Lxrhash.Hash(buf)
+			wv := LX.Hash(buf)
 			g2.Stop()
 			g2.AddHash(buf, wv)
 

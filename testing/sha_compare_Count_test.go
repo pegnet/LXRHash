@@ -1,19 +1,16 @@
+// Copyright (c) of parts are held by the various contributors
+// Licensed under the MIT License. See LICENSE file in the project root for full license information.
 package testing_test
 
 import (
 	"crypto/sha256"
 	"fmt"
-	"math/rand"
 	"testing"
 	"time"
-
-	. "github.com/pegnet/LXRHash"
 )
 
 func TestCount(t *testing.T) {
-	rand.Seed(123412341234)
-
-	Lxrhash.Init(Seed, MapSizeBits, HashSize, Passes)
+	LX.Init(Seed, MapSizeBits, HashSize, Passes)
 
 	Gradehash{}.PrintHeader()
 
@@ -22,7 +19,7 @@ func TestCount(t *testing.T) {
 		go BitCountTest()
 	}
 
-	time.Sleep(180 * time.Second)
+	time.Sleep(20 * time.Second)
 
 }
 
@@ -58,7 +55,7 @@ func BitCountTest() {
 			g1.AddHash(buf, sv[:])
 
 			g2.Start()
-			wv := Lxrhash.Hash(buf)
+			wv := LX.Hash(buf)
 			g2.Stop()
 			g2.AddHash(buf, wv)
 
