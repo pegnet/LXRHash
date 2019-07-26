@@ -30,7 +30,8 @@ func (lx *LXRHash) Log(msg string) {
 	}
 }
 
-// Init()
+// Init initializes the hash with the given values
+//
 // We use our own algorithm for initializing the map struct.  This is an fairly large table of
 // byte values we use to map bytes to other byte values to enhance the avalanche nature of the hash
 // as well as increase the memory footprint of the hash.
@@ -56,8 +57,8 @@ func (lx *LXRHash) Init(Seed, MapSizeBits, HashSize, Passes uint64) {
 
 }
 
-// ReadTable
-// When a lookup table is on the disk, this will allow one to read it.
+// ReadTable attempts to load the ByteMap from disk.
+// If that doesn't exist, a new one will be generated and saved.
 func (lx *LXRHash) ReadTable() {
 
 	u, err := user.Current()
@@ -89,11 +90,8 @@ func (lx *LXRHash) ReadTable() {
 	lx.Log(fmt.Sprintf("Done. Total time taken: %s", time.Since(start)))
 }
 
-// WriteTable
-// When playing around with the algorithm, it is nice to generate files and use them off the disk.  This
-// allows the user to do that, and save the cost of regeneration between Lxrhash runs.
+// WriteTable caches the bytemap to disk so it only has to be generated once
 func (lx *LXRHash) WriteTable(filename string) {
-	// Ah, the data file isn't good for us.  Delete it (if it exists)
 	os.Remove(filename)
 
 	// open output file
@@ -115,9 +113,9 @@ func (lx *LXRHash) WriteTable(filename string) {
 
 }
 
-// GenerateTable
-// Build a table with a rather simplistic but with many passes, adequately randomly ordered bytes.
-// We do some straight forward bitwise math to initialize and scramble our ByteMap.
+// GenerateTable generates the bytemap.
+// Initializes the map with an incremental sequence of bytes,
+// then does P passes, shuffling each element in a deterministic manner.
 func (lx *LXRHash) GenerateTable() {
 
 	// Our own "random" generator that really is just used to shuffle values
