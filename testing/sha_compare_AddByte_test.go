@@ -27,9 +27,9 @@ func AddByteTest() {
 	var g1 Gradehash
 	var g2 Gradehash
 
-	cnt := 0
+	cnt := int64(0)
 	last := time.Now().Unix()
-	for x := 0; x < 100000000000; x++ {
+	for int64(x) := 0; x < 100000000000; x++ {
 		// Get a new buffer of data.
 		buf := []byte{byte(x)}
 
