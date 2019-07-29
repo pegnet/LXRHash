@@ -28,8 +28,8 @@ func DifferentHashes() {
 	var g2 Gradehash
 
 	last := time.Now().Unix()
-	cnt := 0
-	for i := 1; i < 100000000000; i++ {
+	cnt := int64(0)
+	for int64(i) := 1; i < 100000000000; i++ {
 
 		// Get a new buffer of data.
 		buf := Getbuf(1024)
