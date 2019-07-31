@@ -87,7 +87,7 @@ func (lx *LXRHash) ReadTable() {
 	} else {
 		lx.ByteMap = dat
 	}
-	lx.Log(fmt.Sprintf("Done. Total time taken: %s", time.Since(start)))
+	lx.Log(fmt.Sprintf("Finished Reading ByteMap Table. Total time taken: %s", time.Since(start)))
 }
 
 // WriteTable caches the bytemap to disk so it only has to be generated once
