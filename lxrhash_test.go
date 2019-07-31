@@ -28,7 +28,7 @@ func BenchmarkHash(b *testing.B) {
 				nonce = append(nonce, byte(j))
 			}
 			no := append(oprhash, nonce...)
-			h := lx.Hash(no)
+			h := lx.HashLimit(no, lx.HashSize)
 
 			var difficulty uint64
 			for i := uint64(0); i < 8; i++ {
