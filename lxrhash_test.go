@@ -3,7 +3,9 @@
 package lxr
 
 import (
+	"bytes"
 	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"testing"
 )
@@ -18,19 +20,52 @@ func init() {
 
 func BenchmarkHash(b *testing.B) {
 	nonce := []byte{0, 0}
-	for i := 0; i < b.N; i++ {
-		nonce = nonce[:0]
-		for j := i; j > 0; j = j >> 8 {
-			nonce = append(nonce, byte(j))
-		}
-		no := append(oprhash, nonce...)
-		h := lx.Hash(no)
 
-		var difficulty uint64
-		for i := uint64(0); i < 8; i++ {
-			difficulty = difficulty<<8 + uint64(h[i])
+	b.Run("normal hash", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			nonce = nonce[:0]
+			for j := i; j > 0; j = j >> 8 {
+				nonce = append(nonce, byte(j))
+			}
+			no := append(oprhash, nonce...)
+			h := lx.Hash(no)
+
+			var difficulty uint64
+			for i := uint64(0); i < 8; i++ {
+				difficulty = difficulty<<8 + uint64(h[i])
+			}
+		}
+	})
+
+	b.Run("limited hash", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			nonce = nonce[:0]
+			for j := i; j > 0; j = j >> 8 {
+				nonce = append(nonce, byte(j))
+			}
+			no := append(oprhash, nonce...)
+			h := lx.HashLimit(no, 8)
+
+			var difficulty uint64
+			for i := uint64(0); i < 8; i++ {
+				difficulty = difficulty<<8 + uint64(h[i])
+			}
+		}
+	})
+}
+
+func TestSamePrefix(t *testing.T) {
+	data := make([]byte, 36)
+
+	for i := 0; i < 50; i++ {
+		rand.Read(data)
+		a := lx.Hash(data)[:8]
+		b := lx.HashLimit(data, 8)[:8]
+		if bytes.Compare(a, b) != 0 {
+			t.Errorf("mismatch for bytes %s and %s", hex.EncodeToString(a), hex.EncodeToString(b))
 		}
 	}
+
 }
 
 func bLength(length int, b *testing.B) {

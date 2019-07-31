@@ -13,8 +13,12 @@ type LXRHash struct {
 	verbose     bool
 }
 
-// Hash takes the arbitrary input and returns the resulting hash of length HashSize
 func (lx LXRHash) Hash(src []byte) []byte {
+	return lx.HashLimit(src, lx.HashSize)
+}
+
+// Hash takes the arbitrary input and returns the resulting hash of length HashSize
+func (lx LXRHash) HashLimit(src []byte, limit uint64) []byte {
 	// Keep the byte intermediate results as int64 values until reduced.
 	hs := make([]uint64, lx.HashSize)
 	// as accumulates the state as we walk through applying the source data through the lookup map
@@ -107,7 +111,7 @@ func (lx LXRHash) Hash(src []byte) []byte {
 
 	bytes := make([]byte, lx.HashSize)
 	// Roll over all the hs (one int64 value for every byte in the resulting hash) and reduce them to byte values
-	for i, h := range hs {
+	for i, h := range hs[:limit] {
 		step(h, uint64(i))          // Step the hash functions and then
 		bytes[i] = b(as) ^ b(hs[i]) // Xor two resulting sequences
 	}
