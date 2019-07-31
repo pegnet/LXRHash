@@ -107,8 +107,8 @@ func (lx LXRHash) Hash(src []byte) []byte {
 
 	bytes := make([]byte, lx.HashSize)
 	// Roll over all the hs (one int64 value for every byte in the resulting hash) and reduce them to byte values
-	for i, h := range hs {
-		step(h, uint64(i))          // Step the hash functions and then
+	for i := len(hs) - 1; i >= 0; i-- {
+		step(hs[i], uint64(i))      // Step the hash functions and then
 		bytes[i] = b(as) ^ b(hs[i]) // Xor two resulting sequences
 	}
 
