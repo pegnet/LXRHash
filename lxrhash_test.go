@@ -17,18 +17,7 @@ func init() {
 }
 
 func BenchmarkHash(b *testing.B) {
-	b.Run("hash old", func(b *testing.B) {
-		nonce := []byte{0, 0}
-		for i := 0; i < b.N; i++ {
-			nonce = nonce[:0]
-			for j := i; j > 0; j = j >> 8 {
-				nonce = append(nonce, byte(j))
-			}
-			no := append(oprhash, nonce...)
-			lx.HashOld(no)
-		}
-	})
-	b.Run("hash 2", func(b *testing.B) {
+	b.Run("hash", func(b *testing.B) {
 		nonce := []byte{0, 0}
 		for i := 0; i < b.N; i++ {
 			nonce = nonce[:0]
@@ -39,18 +28,7 @@ func BenchmarkHash(b *testing.B) {
 			lx.Hash(no)
 		}
 	})
-	b.Run("hash old again", func(b *testing.B) {
-		nonce := []byte{0, 0}
-		for i := 0; i < b.N; i++ {
-			nonce = nonce[:0]
-			for j := i; j > 0; j = j >> 8 {
-				nonce = append(nonce, byte(j))
-			}
-			no := append(oprhash, nonce...)
-			lx.HashOld(no)
-		}
-	})
-	b.Run("hash 2 again", func(b *testing.B) {
+	b.Run("hash again", func(b *testing.B) {
 		nonce := []byte{0, 0}
 		for i := 0; i < b.N; i++ {
 			nonce = nonce[:0]
@@ -61,35 +39,6 @@ func BenchmarkHash(b *testing.B) {
 			lx.Hash(no)
 		}
 	})
-}
-
-func TestOldAndNew(t *testing.T) {
-	h1 := make([][]byte, 0)
-	h2 := make([][]byte, 0)
-	nonce := []byte{0, 0}
-	for i := 0; i < 500; i++ {
-		nonce = nonce[:0]
-		for j := i; j > 0; j = j >> 8 {
-			nonce = append(nonce, byte(j))
-		}
-		no := append(oprhash, nonce...)
-		h1 = append(h1, lx.HashOld(no))
-	}
-	nonce = []byte{0, 0}
-	for i := 0; i < 500; i++ {
-		nonce = nonce[:0]
-		for j := i; j > 0; j = j >> 8 {
-			nonce = append(nonce, byte(j))
-		}
-		no := append(oprhash, nonce...)
-		h2 = append(h2, lx.Hash(no))
-	}
-
-	for i := 0; i < 500; i++ {
-		if bytes.Compare(h1[i], h2[i]) != 0 {
-			t.Fatalf("mismatch at %d", i)
-		}
-	}
 }
 
 func TestKnownHashes(t *testing.T) {
