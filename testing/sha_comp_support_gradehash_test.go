@@ -33,7 +33,7 @@ type Gradehash struct {
 }
 
 func (g Gradehash) PrintHeader() {
-	fmt.Print("------------------------------------\n"+
+	fmt.Print("------------------------------------\n" +
 		"Key For Data Printed while tests run:\n\n" +
 		"| xxx,xxx :  of the number of hashes performed.  The test does the same number of sha hashes as lxr hashes\n\n" +
 		"| bit-xxx :  This is the test, where the test (bit or add, or cnt, or dif) is followed by -xxx where xxx\n" +
@@ -52,7 +52,7 @@ func (g Gradehash) PrintHeader() {
 		"               should kinda take the same number of hashes to get kinda the same-ish max value\n\n" +
 		"| cnt     :  Number of times we found a bigger hash in this run\n\n" +
 		"| xxx hps :  We take the time executing sha and the time executing lxr and calculate a rough estimate of\n" +
-		"               how many hashes per second we could be executing them.  Generally lxr is way slower\n"+
+		"               how many hashes per second we could be executing them.  Generally lxr is way slower\n" +
 		"------------------------------------\n")
 }
 
