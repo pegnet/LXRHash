@@ -19,7 +19,7 @@ func TestNonce(t *testing.T) {
 		go NonceTest()
 	}
 
-	time.Sleep(2000 * time.Second)
+	time.Sleep(20 * time.Second)
 
 }
 
