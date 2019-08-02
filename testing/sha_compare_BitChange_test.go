@@ -30,7 +30,7 @@ func BitChangeTest() {
 	cnt := int64(0)
 
 	last := time.Now().Unix()
-	for int64(x) := 0; x < 100000000000; x++ {
+	for x := int64(0); x < 100000000000; x++ {
 		// Get a new buffer of data.
 		buf := Getbuf(1024)
 
