@@ -54,7 +54,7 @@ func TestKnownHashes(t *testing.T) {
 		hash := lx.Hash([]byte(k))
 		val, _ := hex.DecodeString(v)
 
-		if bytes.Compare(hash, val) != 0 {
+		if !bytes.Equal(hash, val) {
 			t.Errorf("mismatch for %s. got = %s, want = %s", k, hex.EncodeToString(hash), v)
 		}
 	}
