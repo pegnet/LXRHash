@@ -24,8 +24,8 @@ func TestNonce(t *testing.T) {
 }
 
 const (
-	elementsInLRU = 4 * 1024  Each 1k in the elements LRU is 8k of data.
-	cacheLine     = uint(3) // 1 would be 2 bytes, 2 would be 4 bytes, 3 would be 8 bytes, etc.
+	elementsInLRU = 4 * 1024 // Each 1k in the elements LRU is 8k of data.
+	cacheLine     = uint(3)  // 1 would be 2 bytes, 2 would be 4 bytes, 3 would be 8 bytes, etc.
 )
 
 func NonceTest() {

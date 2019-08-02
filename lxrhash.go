@@ -80,9 +80,6 @@ func (lx *LXRHash) Hash(src []byte) []byte {
 		s1, s2, s3 = s3, s1, s2
 	}
 
-	firstidx := lx.FirstIdx
-	_ = firstidx
-
 	idx := uint64(0)
 	// Fast spin to prevent caching state
 	for _, v2 := range src {
@@ -93,14 +90,14 @@ func (lx *LXRHash) Hash(src []byte) []byte {
 		idx++
 	}
 
-	if len(src) > 0 {
-		lx.FirstIdx = (as>>5 ^ uint64(src[0])) & mk
-	}
 	idx = 0
 	// Actual work to compute the hash
-	for _, v2 := range src {
+	for i, v2 := range src {
 		if idx >= lx.HashSize { // Use an if to avoid modulo math
 			idx = 0
+		}
+		if i == 0 {
+			lx.FirstIdx = (as>>5 ^ uint64(v2)) & mk
 		}
 		step(uint64(v2), idx)
 		idx++
