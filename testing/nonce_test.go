@@ -12,8 +12,6 @@ import (
 func TestNonce(t *testing.T) {
 	LX.Init(Seed, 25, HashSize, Passes)
 
-	Gradehash{}.PrintHeader()
-
 	numTests := 1
 	for i := 0; i < numTests; i++ {
 		go NonceTest()
@@ -46,17 +44,20 @@ func NonceTest() {
 	hit := func(v uint64) bool {
 		v = v >> cacheLine // Cache line of a certain number of bits.
 		if hits[v] > 0 {
-			for i := elementsInLRU - 1; i >= 0; i-- {
+			for i := range list {
 				if list[i] == v {
 					if i > 0 {
-						copy(list[1:i], list[0:i-1])
+						copy(list[1:i+1], list[0:i])
 					}
 					list[0] = v
 					hits[v]++
 					return true
 				}
 			}
+			panic("Didn't have the hit!")
 		}
+
+		delete(hits, list[elementsInLRU-1])
 		copy(list[1:], list[:])
 		list[0] = v
 		hits[v] = 1
