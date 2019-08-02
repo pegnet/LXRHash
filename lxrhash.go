@@ -10,19 +10,23 @@ type LXRHash struct {
 	Passes      uint64 // Passes to generate the rand table
 	Seed        uint64 // An arbitrary number used to create the tables.
 	HashSize    uint64 // Number of bytes in the hash
+	FirstIdx    uint64 // First Index used by LXRHash. (variance measures distribution of ByteMap access)
 	verbose     bool
 }
 
-func (lx LXRHash) B(v uint64) uint64 {
+func (lx *LXRHash) B(v uint64) uint64 {
 	return uint64(lx.ByteMap[v&(lx.MapSize-1)])
 }
 
-func (lx LXRHash) b(v uint64) byte {
+func (lx *LXRHash) b(v uint64) byte {
 	return byte(lx.B(v))
 }
 
-func (lx LXRHash) step(as, s1, s2, s3, v2, idx uint64) (uint64, uint64, uint64, uint64, uint64) {
-	s1 = s1<<9 ^ s1>>1 ^ as ^ lx.B(as>>5^v2)<<3
+func (lx *LXRHash) step(as, s1, s2, s3, v2, idx uint64) (uint64, uint64, uint64, uint64, uint64) {
+
+	lx.FirstIdx = (as>>5 ^ v2) & (lx.MapSize - 1)
+
+	s1 = s1<<9 ^ s1>>1 ^ as ^ lx.B(lx.FirstIdx)<<3
 	s1 = s1<<5 ^ s1>>3 ^ lx.B(s1^v2)<<7
 	s1 = s1<<7 ^ s1>>7 ^ lx.B(as^s1>>7)<<5
 	s1 = s1<<11 ^ s1>>5 ^ lx.B(v2^as>>11^s1)<<27
@@ -61,7 +65,7 @@ func (lx LXRHash) step(as, s1, s2, s3, v2, idx uint64) (uint64, uint64, uint64, 
 	return as, s1, s2, s3, idx
 }
 
-func (lx LXRHash) faststep(as, s1, s2, s3, v2 uint64, idx uint64, hs []uint64) (uint64, uint64, uint64, uint64) {
+func (lx *LXRHash) faststep(as, s1, s2, s3, v2 uint64, idx uint64, hs []uint64) (uint64, uint64, uint64, uint64) {
 	as = idx<<1 ^ idx>>3 ^ as<<7 ^ as>>5 ^ v2
 	s1 = s1<<9 ^ s1>>3 ^ as
 	hs[idx] = s1 ^ as
@@ -69,7 +73,7 @@ func (lx LXRHash) faststep(as, s1, s2, s3, v2 uint64, idx uint64, hs []uint64) (
 	return as, s1, s2, s3
 }
 
-func (lx LXRHash) Hash(src []byte) []byte {
+func (lx *LXRHash) Hash(src []byte) []byte {
 	// Keep the byte intermediate results as int64 values until reduced.
 	hs := make([]uint64, lx.HashSize)
 	// as accumulates the state as we walk through applying the source data through the lookup map
