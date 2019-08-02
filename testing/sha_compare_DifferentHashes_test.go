@@ -29,7 +29,7 @@ func DifferentHashes() {
 
 	last := time.Now().Unix()
 	cnt := int64(0)
-	for int64(i) := 1; i < 100000000000; i++ {
+	for i := int64(1); i < 100000000000; i++ {
 
 		// Get a new buffer of data.
 		buf := Getbuf(1024)

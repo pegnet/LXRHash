@@ -10,11 +10,12 @@ type LXRHash struct {
 	Passes      uint64 // Passes to generate the rand table
 	Seed        uint64 // An arbitrary number used to create the tables.
 	HashSize    uint64 // Number of bytes in the hash
+	FirstIdx    uint64 // First Index used by LXRHash. (variance measures distribution of ByteMap access)
 	verbose     bool
 }
 
 // Hash takes the arbitrary input and returns the resulting hash of length HashSize
-func (lx LXRHash) Hash(src []byte) []byte {
+func (lx *LXRHash) Hash(src []byte) []byte {
 	// Keep the byte intermediate results as int64 values until reduced.
 	hs := make([]uint64, lx.HashSize)
 	// as accumulates the state as we walk through applying the source data through the lookup map
@@ -29,10 +30,10 @@ func (lx LXRHash) Hash(src []byte) []byte {
 	b := func(v uint64) byte { return byte(B(v)) }
 
 	faststep := func(v2 uint64, idx uint64) {
-		as = idx<<1 ^ idx>>3 ^ as<<7 ^ as>>5
-		s1 = s1<<9 ^ s1>>3 ^ as
+		as = as<<7 ^ as>>5 ^ v2<<33 ^ v2<<17 ^ v2<<3
+		s1 = s1<<9 ^ s1>>3 ^ hs[idx]
 		hs[idx] = s1 ^ as
-		as, s1, s2, s3 = s3, as, s1, s2
+		s1, s2, s3 = s3, s1, s2
 	}
 
 	// Define a function to move the state by one byte.  This is not intended to be fast
@@ -79,6 +80,9 @@ func (lx LXRHash) Hash(src []byte) []byte {
 		s1, s2, s3 = s3, s1, s2
 	}
 
+	firstidx := lx.FirstIdx
+	_ = firstidx
+
 	idx := uint64(0)
 	// Fast spin to prevent caching state
 	for _, v2 := range src {
@@ -89,6 +93,9 @@ func (lx LXRHash) Hash(src []byte) []byte {
 		idx++
 	}
 
+	if len(src) > 0 {
+		lx.FirstIdx = (as>>5 ^ uint64(src[0])) & mk
+	}
 	idx = 0
 	// Actual work to compute the hash
 	for _, v2 := range src {
