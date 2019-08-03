@@ -10,6 +10,7 @@ import (
 )
 
 func TestNonce(t *testing.T) {
+	LX.Verbose(true)
 	LX.Init(Seed, 25, HashSize, Passes)
 
 	numTests := 1
@@ -66,10 +67,10 @@ func NonceTest() {
 	}
 
 	var numHits int
-	for x := int64(0); x < 100000000000; x++ {
+	for x := int64(0); x < 100000000000; x += 1 {
 		// Get a new buffer of data.
 		base = base[:32]
-		for n := x + 1000; n > 0; n = n >> 8 {
+		for n := x; n > 0; n = n >> 8 {
 			base = append(base, byte(n))
 		}
 

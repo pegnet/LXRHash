@@ -30,7 +30,8 @@ func (lx *LXRHash) Hash(src []byte) []byte {
 	b := func(v uint64) byte { return byte(B(v)) }
 
 	faststep := func(v2 uint64, idx uint64) {
-		as = as<<7 ^ as>>5 ^ v2<<33 ^ v2<<17 ^ v2<<3
+		b := B(as ^ v2)
+		as = as<<7 ^ as>>5 ^ v2<<20 ^ v2<<16 ^ v2 ^ b<<20 ^ b<<12 ^ b<<4
 		s1 = s1<<9 ^ s1>>3 ^ hs[idx]
 		hs[idx] = s1 ^ as
 		s1, s2, s3 = s3, s1, s2
