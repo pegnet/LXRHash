@@ -2,11 +2,10 @@
 Lookup XoR Hash:  First RAM Hash Algorithm
 ---------
 LXRHash uses an XOR/Shift random number generator coupled with a lookup table of randomized sets of bytes.  
-The lookup table consists of any number of 256 byte tables combined and sorted in one large table.  We 
-then index into this large table to effectively look through the entire combination of tables as we 
-translate the source data into a hash.
+The lookup table consists of any number of 256 byte tables combined and shuffled into one large byte lookup table.  We 
+then index into this large table to translate the state built up while hashing into deterministic but random byte values.
 
-Using a 1GB lookup table results in a PoW algorithm that spends over 90% of its execution time waiting on memory (RAM) than it does computing the hash.  This means far less power consumption, and ASIC and GPU resistence.  The ideal platform for PoW using a RAM Hash is a Single Board Computer like a Raspberry PI 4 with 2GB of memory.
+Using a 1GB lookup table results in a RAM Hash PoW algorithm that spends over 90% of its execution time waiting on memory (RAM) than it does computing the hash.  This means far less power consumption, and ASIC and GPU resistence.  The ideal platform for PoW using a RAM Hash is a Single Board Computer like a Raspberry PI 4 with 2GB of memory.
 
 All parameters are specified.  The size of the lookup table is specified in bits for the index, the seed used to shuffle
 the lookup table, the number of rounds to shuffle the table, and the size of the resulting hash.
