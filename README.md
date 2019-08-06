@@ -1,19 +1,27 @@
 # LXRHash
-Lookup XoR Hash
+Lookup XoR Hash:  First RAM Hash Algorithm
 ---------
 LXRHash uses an XOR/Shift random number generator coupled with a lookup table of randomized sets of bytes.  
 The lookup table consists of any number of 256 byte tables combined and sorted in one large table.  We 
 then index into this large table to effectively look through the entire combination of tables as we 
 translate the source data into a hash.
 
-All parameters are specified.  The size of the lookup table (in numbers of 256 byte tables), the seed used to shuffle
+Using a 1GB lookup table results in a PoW algorithm that spends over 90% of its execution time waiting on memory (RAM) than it does computing the hash.  This means far less power consumption, and ASIC and GPU resistence.  The ideal platform for PoW using a RAM Hash is a Single Board Computer like a Raspberry PI 4 with 2GB of memory.
+
+All parameters are specified.  The size of the lookup table is specified in bits for the index, the seed used to shuffle
 the lookup table, the number of rounds to shuffle the table, and the size of the resulting hash.
 
-LXRHash has some interesting qualities.  Very large lookup tables will blow the memory caches on pretty much any 
-processor or computer architecture. The size of the table can be increased to counter improvements in memory caching.  
-The number of bytes in the resulting hash can be increased for more security (greater hash space), without significantly
-more processing time.  Note, while this approach *can* be fast, this implemenation isn't.  The use case 
-is aimed at Proof of Work (PoW), not cryptographic hashing.
+Because the LXRHash is parameterized in this way, as computers get faster and larger memory caches, the LXRHash can be set to use 2GB or 16GB or more.  The Memory bottleneck to computation is much easier to manage than attempts to find computational algorithms that cannot be executed faster and cheaper with custom hardware, or specialty hardware like GPUs.
+
+So to quickly interate over LXRHash features:  
+* Very large lookup tables will blow the memory caches on pretty much any processor or computer architecture
+* The size of the table can be increased to counter improvements in memory caching
+* The number of bytes in the resulting hash can be increased for more security (greater hash space), without significantly
+more processing time
+* LXRHash *can* be fast by using small lookup tables
+* ASIC implementations for small tables would be very easy and very fast
+* LXRHash only uses iterators (for indexing) shifts, binary ANDs and XORs, and random byte lookups
+* The use case for LXRHash is Proof of Work (PoW), not cryptographic hashing
 
 The Lookup 
 -------
