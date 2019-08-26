@@ -3,6 +3,7 @@
 package lxr
 
 import (
+	"bufio"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -107,10 +108,21 @@ func (lx *LXRHash) WriteTable(filename string) {
 	}()
 
 	// write a chunk
-	if _, err := fo.Write(lx.ByteMap[:]); err != nil {
+	w := bufio.NewWriter(fo)
+	bufSize := 4096 // 4KiB
+	for i := 0; i < len(lx.ByteMap); i += bufSize {
+		j := i + bufSize
+		if j > len(lx.ByteMap) {
+			j = len(lx.ByteMap)
+		}
+		if nn, err := w.Write(lx.ByteMap[i:j]); err != nil {
+			panic(fmt.Sprintf("error writing bytemap to disk: %d bytes written, %v", nn, err))
+		}
+	}
+	err = w.Flush()
+	if err != nil {
 		panic(err)
 	}
-
 }
 
 // GenerateTable generates the bytemap.
