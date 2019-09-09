@@ -1,8 +1,11 @@
 package lxr
 
+import "sync"
+
 // The goal of instances is to provide a way for multiple packages to use LXR without
 // instantiating multiple bytemaps in memory or having to share references
 
+var instanceMtx sync.Mutex
 var instances map[uint64]*LXRHash
 
 func init() {
@@ -20,6 +23,9 @@ func Init(bitsize uint64) *LXRHash {
 		panic("bitsize must be at least 8")
 	}
 
+	instanceMtx.Lock()
+	defer instanceMtx.Unlock()
+
 	if instance, ok := instances[bitsize]; ok {
 		return instance
 	}
@@ -34,5 +40,7 @@ func Init(bitsize uint64) *LXRHash {
 // Release dereferences the shared instance inside this package, allowing the garbage collector to free the memory.
 // Please note that any existing references to the instance outside this package will keep it alive
 func Release(bitsize uint64) {
+	instanceMtx.Lock()
+	defer instanceMtx.Unlock()
 	delete(instances, bitsize)
 }
