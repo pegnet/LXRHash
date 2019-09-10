@@ -8,11 +8,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dustin/go-humanize"
 	lxr "github.com/pegnet/LXRHash"
 )
 
 var total uint64
-var now = time.Now()
+var now time.Time
 
 var prt chan string
 
@@ -45,7 +46,13 @@ func mine(useLXR bool, data []byte) uint64 {
 			cd = d
 			running := time.Since(now)
 			hps := float64(total) / running.Seconds()
-			prt <- fmt.Sprintf("%10d %16x %8x %10.0f hps\n", total, cd, i, hps)
+
+			stotal := humanize.Comma(int64(total))
+			shps := humanize.Comma(int64(hps))
+
+			elapse := time.Now().Sub(now)
+
+			prt <- fmt.Sprintf("%10ds %13s %16x %8x %10s hps\n", int(elapse.Seconds()), stotal, cd, i, shps)
 
 		}
 	}
@@ -53,10 +60,10 @@ func mine(useLXR bool, data []byte) uint64 {
 }
 
 func main() {
-
+	println("Original")
 	leave := func() {
 		fmt.Println("Usage:\n\n" +
-			"simMiner <hash> [bits]\n\n" +
+			"RsimMiner <hash> [bits]\n\n" +
 			"<hash> is equal to LXRHash to sim mine LXRHash\n" +
 			"<hash> is equal to Sha256 to sim mine Sha256\n" +
 			"[bits] defaults to 30, but lower numbers can be quicker to initialize")
@@ -98,6 +105,9 @@ func main() {
 	}
 
 	prt = make(chan string, 500)
+
+	now=time.Now()
+
 	go mine(hash, []byte("000000000200000000020000000002000"))
 	go mine(hash, []byte("000000000200000000020000000002001"))
 	go mine(hash, []byte("000000000200000000020000000002002"))
@@ -118,7 +128,12 @@ func main() {
 		time.Sleep(10 * time.Second)
 		running := time.Since(now)
 		hps := float64(total) / running.Seconds()
-		prt <- fmt.Sprintf("%10d %16s %8s %10.0f hps\n", total, "", "", hps)
+		stotal := humanize.Comma(int64(total))
 
+		elapse := time.Now().Sub(now)
+
+		shps := humanize.Comma(int64(hps))
+
+		prt <- fmt.Sprintf("%10ds %13s %16x %8x %10s hps\n", int(elapse.Seconds()), stotal, "", "", shps)
 	}
 }
