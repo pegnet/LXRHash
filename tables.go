@@ -46,34 +46,26 @@ func (lx *LXRHash) Init(Seed, MapSizeBits, HashSize, Passes uint64) {
 		panic(fmt.Sprintf("Bad Map Size in Bits.  Must be between 8 and 34 bits, was %d", MapSizeBits))
 	}
 
-	MapSize := uint64(1) << MapSizeBits
-	lx.ByteMap = make([]byte, int(MapSize))
-
-	lx.HashSize = (HashSize + 7) / 8
-	lx.MapSize = MapSize
-	lx.MapSizeBits = MapSizeBits
-	lx.Seed = Seed
-	lx.Passes = Passes
+	lx.SetParms(MapSizeBits, HashSize, Seed, Passes)
 	lx.ReadTable()
 
+}
+
+func (lx *LXRHash) SetParms(mapSizeBits uint64, hashSize uint64, seed uint64, passes uint64) {
+	MapSize := uint64(1) << mapSizeBits
+	lx.ByteMap = make([]byte, int(MapSize))
+	lx.HashSize = (hashSize + 7) / 8
+	lx.MapSize = MapSize
+	lx.MapSizeBits = mapSizeBits
+	lx.Seed = seed
+	lx.Passes = passes
 }
 
 // ReadTable attempts to load the ByteMap from disk.
 // If that doesn't exist, a new one will be generated and saved.
 func (lx *LXRHash) ReadTable() {
 
-	u, err := user.Current()
-	if err != nil {
-		panic(err)
-	}
-	userPath := u.HomeDir
-	lxrhashPath := userPath + "/.lxrhash"
-	err = os.MkdirAll(lxrhashPath, os.ModePerm)
-	if err != nil {
-		panic(fmt.Sprintf("Could not create the directory %s", lxrhashPath))
-	}
-
-	filename := fmt.Sprintf(lxrhashPath+"/lxrhash-seed-%x-passes-%d-size-%d.dat", lx.Seed, lx.Passes, lx.MapSizeBits)
+	filename := lx.GetFilename()
 	// Try and load our byte map.
 	lx.Log(fmt.Sprintf("Reading ByteMap Table %s", filename))
 
@@ -89,6 +81,20 @@ func (lx *LXRHash) ReadTable() {
 		lx.ByteMap = dat
 	}
 	lx.Log(fmt.Sprintf("Finished Reading ByteMap Table. Total time taken: %s", time.Since(start)))
+}
+
+func (lx *LXRHash) GetFilename() string {
+	u, err := user.Current()
+	if err != nil {
+		panic(err)
+	}
+	userPath := u.HomeDir
+	lxrhashPath := userPath + "/.lxrhash"
+	err = os.MkdirAll(lxrhashPath, os.ModePerm)
+	if err != nil {
+		panic(fmt.Sprintf("Could not create the directory %s", lxrhashPath))
+	}
+	return fmt.Sprintf(lxrhashPath+"/lxrhash-seed-%x-passes-%d-size-%d.dat", lx.Seed, lx.Passes, lx.MapSizeBits)
 }
 
 // WriteTable caches the bytemap to disk so it only has to be generated once

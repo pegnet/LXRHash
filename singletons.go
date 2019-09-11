@@ -6,10 +6,10 @@ import "sync"
 // instantiating multiple bytemaps in memory or having to share references
 
 var instanceMtx sync.Mutex
-var instances map[uint64]*LXRHash
+var instances map[string]*LXRHash
 
 func init() {
-	instances = make(map[uint64]*LXRHash)
+	instances = make(map[string]*LXRHash)
 }
 
 // Init provides access to shared instances of LXRHash without having to instantiate multiple bytemaps.
@@ -18,29 +18,25 @@ func init() {
 // 	* Seed: 0xFAFAECECFAFAECEC
 // 	* Hash Size: 256
 // 	* Passes: 5
-func Init(bitsize uint64) *LXRHash {
+func Init(Seed, bitsize, HashSize, Passes uint64) *LXRHash {
 	if bitsize < 8 {
 		panic("bitsize must be at least 8")
 	}
 
+	lxr := new(LXRHash)
+	lxr.SetParms(bitsize,HashSize,Seed,Passes)
+
+	key := lxr.GetFilename()
+
 	instanceMtx.Lock()
 	defer instanceMtx.Unlock()
 
-	if instance, ok := instances[bitsize]; ok {
+	if instance, ok := instances[key]; ok {
 		return instance
 	}
 
-	lxr := new(LXRHash)
 	lxr.Verbose(true)
 	lxr.Init(Seed, bitsize, HashSize, Passes)
-	instances[bitsize] = lxr
+	instances[key] = lxr
 	return lxr
-}
-
-// Release dereferences the shared instance inside this package, allowing the garbage collector to free the memory.
-// Please note that any existing references to the instance outside this package will keep it alive
-func Release(bitsize uint64) {
-	instanceMtx.Lock()
-	defer instanceMtx.Unlock()
-	delete(instances, bitsize)
 }

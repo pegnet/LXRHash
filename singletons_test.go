@@ -7,8 +7,8 @@ import (
 )
 
 func testSize(t *testing.T, bits uint64, buf []byte, reference string) {
-	one := Init(bits)
-	two := Init(bits)
+	one := Init(Seed,bits,HashSize,Passes)
+	two := Init(Seed,bits,HashSize,Passes)
 
 	if one != two {
 		t.Errorf("[%d] two separate pointers for singleton: %x and %x", bits, &one, &two)
@@ -42,21 +42,3 @@ func TestInit(t *testing.T) {
 	testSize(t, 10, buf, "3c7df3fac7481d630571926c9be01056b36822baccdf2b1872936194477df2ff")
 }
 
-func TestRelease(t *testing.T) {
-	one := Init(8)
-
-	Release(8)
-
-	two := Init(8)
-
-	if one == two {
-		t.Errorf("instance was not released properly")
-	}
-
-	buf := []byte("test string")
-	res := fmt.Sprintf("%x", one.Hash(buf))
-
-	if res != "abab21b95cee68a5d70d871161e092530638b3b4bd4e88cadab3a5d6bbcf5f80" {
-		t.Errorf("original singleton was destroyed during release")
-	}
-}
