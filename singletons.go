@@ -1,24 +1,25 @@
 package lxr
 
-import "sync"
+import (
+	"fmt"
+	"sync"
+)
 
 // The goal of instances is to provide a way for multiple packages to use LXR without
 // instantiating multiple bytemaps in memory or having to share references
 
 var instanceMtx sync.Mutex
-var instances map[uint64]*LXRHash
+var instances map[string]*LXRHash
+var counter map[string]uint64
 
 func init() {
-	instances = make(map[uint64]*LXRHash)
+	instances = make(map[string]*LXRHash)
+	counter = make(map[string]uint64)
 }
 
 // Init provides access to shared instances of LXRHash without having to instantiate multiple bytemaps.
-// Two separate calls to Init(n) will result in a reference to the same object.
-// LXRHash will be instantiated with the package defaults of:
-// 	* Seed: 0xFAFAECECFAFAECEC
-// 	* Hash Size: 256
-// 	* Passes: 5
-func Init(bitsize uint64) *LXRHash {
+// Two separate calls to Init() will result in a reference to the same object.
+func Init(seed, bitsize, hashsize, passes uint64) *LXRHash {
 	if bitsize < 8 {
 		panic("bitsize must be at least 8")
 	}
@@ -26,21 +27,38 @@ func Init(bitsize uint64) *LXRHash {
 	instanceMtx.Lock()
 	defer instanceMtx.Unlock()
 
-	if instance, ok := instances[bitsize]; ok {
+	id := fmt.Sprintf("%d-%d-%d-%d", seed, bitsize, hashsize, passes)
+
+	counter[id]++
+
+	if instance, ok := instances[id]; ok {
 		return instance
 	}
 
 	lxr := new(LXRHash)
 	lxr.Verbose(true)
-	lxr.Init(Seed, bitsize, HashSize, Passes)
-	instances[bitsize] = lxr
+	lxr.Init(seed, bitsize, hashsize, passes)
+	instances[id] = lxr
 	return lxr
 }
 
-// Release dereferences the shared instance inside this package, allowing the garbage collector to free the memory.
-// Please note that any existing references to the instance outside this package will keep it alive
-func Release(bitsize uint64) {
+// Release releases a singleton. If all references to the singleton have been released, the singleton is destroyed
+// and can be garbage collected
+func Release(hash *LXRHash) {
+	if hash == nil {
+		return
+	}
 	instanceMtx.Lock()
 	defer instanceMtx.Unlock()
-	delete(instances, bitsize)
+
+	id := fmt.Sprintf("%d-%d-%d-%d", hash.Seed, hash.MapSizeBits, hash.HashSize*8, hash.Passes)
+	test, exists := instances[id]
+	if !exists || test != hash {
+		panic("tried to release a non-singleton instance")
+	}
+	counter[id]--
+	if counter[id] == 0 {
+		delete(counter, id)
+		delete(instances, id)
+	}
 }
