@@ -3,6 +3,7 @@
 package testing_test
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"fmt"
 	"sync"
@@ -55,7 +56,7 @@ func BitChangeTest2() {
 		g2.Start()
 		wv := LX.HashValidate(buf, nil)
 		wv2 := LX.HashValidate(buf, wv)
-		if wv2 == nil {
+		if wv2 == nil || !bytes.Equal(wv, wv2) {
 			panic("Validate Fails")
 		}
 		g2.Stop()

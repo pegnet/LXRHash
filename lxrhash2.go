@@ -82,8 +82,12 @@ func (lx *LXRHash2) HashValidate(src []byte, hash []byte) []byte {
 	}
 
 	// If we are validating the hash, then return either a nil or the hash we were given.
-	if hash != nil && !bytes.Equal(data[:], hash[:32]) {
-		return nil
+	if hash != nil {
+		if !bytes.Equal(data[:], hash[:32]) { // The hash didn't validate, so return a nil
+			return nil
+		}
+		// The hash did validate, return it as is.
+		return hash
 	}
 
 	// If building a list, return the 32 byte hash, with the vlist appended to the hash.
