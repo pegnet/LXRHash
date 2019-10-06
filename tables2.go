@@ -11,26 +11,8 @@ import (
 	"time"
 )
 
-// constants for building different sized lookup tables (ByteMap).  Right now, the lookup table is hard coded as
-// a 1K table, but it can be far larger.
-const (
-	firstrand = uint64(2458719153079158768)
-	firstb    = uint64(4631534797403582785)
-	firstv    = uint64(3523455478921636871)
-)
-
-// Verbose enables or disables the output of progress indicators to the console
-func (lx *LXRHash) Verbose(val bool) {
-	lx.verbose = val
-}
-
-// Verbose enables or disables the output of progress indicators to the console
-func (lx *LXRHash2) Verbose(val bool) {
-	lx.verbose = val
-}
-
 // Log is a wrapper function that only prints information when verbose is enabled
-func (lx *LXRHash) Log(msg string) {
+func (lx *LXRHash2) Log(msg string) {
 	if lx.verbose {
 		fmt.Println(msg)
 	}
@@ -46,7 +28,7 @@ func (lx *LXRHash) Log(msg string) {
 // MapSizeBits is the number of bits to use for the MapSize, i.e. 10 = mapsize of 1024
 // HashSize is the number of bits in the hash; truncated to a byte bountry
 // Passes is the number of shuffles of the ByteMap performed.  Each pass shuffles all byte values in the map
-func (lx *LXRHash) Init(Seed, MapSizeBits, HashSize, Passes uint64) {
+func (lx *LXRHash2) Init(Seed, MapSizeBits, HashSize, Passes uint64) {
 	if MapSizeBits < 8 {
 		panic(fmt.Sprintf("Bad Map Size in Bits.  Must be between 8 and 34 bits, was %d", MapSizeBits))
 	}
@@ -65,20 +47,20 @@ func (lx *LXRHash) Init(Seed, MapSizeBits, HashSize, Passes uint64) {
 
 // ReadTable attempts to load the ByteMap from disk.
 // If that doesn't exist, a new one will be generated and saved.
-func (lx *LXRHash) ReadTable() {
+func (lx *LXRHash2) ReadTable() {
 
 	u, err := user.Current()
 	if err != nil {
 		panic(err)
 	}
 	userPath := u.HomeDir
-	lxrhashPath := userPath + "/.lxrhash"
-	err = os.MkdirAll(lxrhashPath, os.ModePerm)
+	LXRHash2Path := userPath + "/.lxrhash"
+	err = os.MkdirAll(LXRHash2Path, os.ModePerm)
 	if err != nil {
-		panic(fmt.Sprintf("Could not create the directory %s", lxrhashPath))
+		panic(fmt.Sprintf("Could not create the directory %s", LXRHash2Path))
 	}
 
-	filename := fmt.Sprintf(lxrhashPath+"/lxrhash-seed-%x-passes-%d-size-%d.dat", lx.Seed, lx.Passes, lx.MapSizeBits)
+	filename := fmt.Sprintf(LXRHash2Path+"/lxrhash-seed-%x-passes-%d-size-%d.dat", lx.Seed, lx.Passes, lx.MapSizeBits)
 	// Try and load our byte map.
 	lx.Log(fmt.Sprintf("Reading ByteMap Table %s", filename))
 
@@ -97,7 +79,7 @@ func (lx *LXRHash) ReadTable() {
 }
 
 // WriteTable caches the bytemap to disk so it only has to be generated once
-func (lx *LXRHash) WriteTable(filename string) {
+func (lx *LXRHash2) WriteTable(filename string) {
 	os.Remove(filename)
 
 	// open output file
@@ -133,7 +115,7 @@ func (lx *LXRHash) WriteTable(filename string) {
 // GenerateTable generates the bytemap.
 // Initializes the map with an incremental sequence of bytes,
 // then does P passes, shuffling each element in a deterministic manner.
-func (lx *LXRHash) GenerateTable() {
+func (lx *LXRHash2) GenerateTable() {
 
 	// Our own "random" generator that really is just used to shuffle values
 	offset := lx.Seed ^ firstrand

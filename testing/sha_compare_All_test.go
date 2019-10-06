@@ -20,6 +20,6 @@ func TestAll(t *testing.T) {
 		go AddByteTest()
 	}
 
-	time.Sleep(20 * time.Second)
+	time.Sleep(2000 * time.Second)
 
 }

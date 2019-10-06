@@ -3,27 +3,31 @@
 package testing_test
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 )
 
-func TestBitChange(t *testing.T) {
+func TestBitChange2(t *testing.T) {
 	LX.Init(Seed, MapSizeBits, HashSize, Passes)
 
 	Gradehash{}.PrintHeader()
 
 	numTests := 1
 	for i := 0; i < numTests; i++ {
-		go BitChangeTest()
+		go BitChangeTest2()
 	}
 
-	time.Sleep(2000 * time.Second)
+	time.Sleep(20000 * time.Second)
 
 }
 
-func BitChangeTest() {
+var once sync.Once
+
+func BitChangeTest2() {
 	var g1 Gradehash
 	var g2 Gradehash
 
@@ -49,9 +53,16 @@ func BitChangeTest() {
 				g1.AddHash(buf, sv[:])
 
 				g2.Start()
-				wv := LX.Hash(buf)
+				wv, vlist := LX.HashValidate(buf, nil, false)
+				wv2, _ := LX.HashValidate(buf, vlist, true)
+				if !bytes.Equal(wv, wv2) {
+					panic("Validate Fails")
+				}
 				g2.Stop()
 				g2.AddHash(buf, wv)
+				once.Do(func() {
+					fmt.Println("vlist len ", len(vlist))
+				})
 
 				// flipping a bit again repairs it.
 				buf[i] = buf[i] ^ bit_to_flip

@@ -16,7 +16,7 @@ var now = time.Now()
 
 var prt chan string
 
-var LX *lxr.LXRHash
+var LX *lxr.LXRHash2
 
 func mine(useLXR bool, data []byte) uint64 {
 
@@ -49,21 +49,21 @@ func mine(useLXR bool, data []byte) uint64 {
 
 		}
 	}
-	return cd
 }
 
 func main() {
 
+	fmt.Println("Usage:\n\n" +
+		"simMiner <hash> <number of miners> [bits]\n\n" +
+		"<hash> is equal to LXRHash or Sha256 \n" +
+		"<number of miners> launch this many miners\n" +
+		"[bits] defaults to 30, but lower numbers can be quicker to initialize")
+
 	leave := func() {
-		fmt.Println("Usage:\n\n" +
-			"simMiner <hash> [bits]\n\n" +
-			"<hash> is equal to LXRHash to sim mine LXRHash\n" +
-			"<hash> is equal to Sha256 to sim mine Sha256\n" +
-			"[bits] defaults to 30, but lower numbers can be quicker to initialize")
 		os.Exit(0)
 	}
 
-	if len(os.Args) < 2 {
+	if len(os.Args) < 3 {
 		leave()
 	}
 
@@ -73,10 +73,21 @@ func main() {
 		leave()
 	}
 
+	numMiners, err := strconv.ParseInt(os.Args[2], 10, 64)
+	if err != nil {
+		os.Stderr.WriteString(err.Error())
+		leave()
+	}
+
+	if numMiners < 1 || numMiners > 200 {
+		os.Stderr.WriteString(fmt.Sprintf("The number of miners should be 1 or more, less than 200. %d", numMiners))
+		leave()
+	}
+
 	bits := lxr.MapSizeBits
 	if hash {
-		if len(os.Args) == 3 {
-			b, err := strconv.Atoi(os.Args[2])
+		if len(os.Args) == 4 {
+			b, err := strconv.Atoi(os.Args[3])
 			if err != nil {
 				fmt.Println(err)
 				leave()
@@ -87,26 +98,24 @@ func main() {
 			bits = uint64(b)
 		}
 
-		LX = new(lxr.LXRHash)
+		LX = new(lxr.LXRHash2)
 		LX.Init(lxr.Seed, bits, lxr.HashSize, lxr.Passes)
 	}
 
 	if hash {
-		fmt.Println("Using LXRHash with a ", bits, " bit addressable ByteMap")
+		fmt.Println("Using LXRHash ", numMiners, " miners using ", bits, " bit addressable ByteMap")
 	} else {
 		fmt.Println("Using Sha256")
 	}
 
+	data := []byte("000000000200000000020000000002000")
 	prt = make(chan string, 500)
-	go mine(hash, []byte("000000000200000000020000000002000"))
-	go mine(hash, []byte("000000000200000000020000000002001"))
-	go mine(hash, []byte("000000000200000000020000000002002"))
-	go mine(hash, []byte("000000000200000000020000000002003"))
 
-	go mine(hash, []byte("000000000200000000020000000002004"))
-	go mine(hash, []byte("000000000200000000020000000002005"))
-	go mine(hash, []byte("000000000200000000020000000002006"))
-	go mine(hash, []byte("000000000200000000020000000002006"))
+	for i := 0; i < int(numMiners); i++ {
+		data[i%len(data)]++
+		md := append([]byte{}, data...)
+		go mine(hash, md)
+	}
 
 	for {
 		select {

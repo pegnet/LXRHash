@@ -9,4 +9,4 @@ const (
 	HashSize    = uint64(256)                // Default hash size.
 )
 
-var LX lxr.LXRHash
+var LX lxr.LXRHash2
