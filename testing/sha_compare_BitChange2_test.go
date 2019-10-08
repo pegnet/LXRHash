@@ -54,10 +54,13 @@ func BitChangeTest2() {
 		g1.AddHash(buf, sv[:])
 
 		g2.Start()
-		wv := LX.HashValidate(buf, nil)
-		wv2 := LX.HashValidate(buf, wv)
-		if wv2 == nil || !bytes.Equal(wv, wv2) {
-			panic("Validate Fails")
+		wv, _ := LX.HashValidate(buf, nil)
+		wv2, err := LX.HashValidate(buf, wv)
+		if err != nil {
+			panic("Validate Fail: " + err.Error())
+		}
+		if !bytes.Equal(wv[:32], wv2[:32]) {
+			panic("The hashes don't actually match.  This should not happen.")
 		}
 		g2.Stop()
 		g2.AddHash(buf, wv[:32])
