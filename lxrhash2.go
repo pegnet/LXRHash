@@ -10,14 +10,16 @@ import (
 
 // LXRHash holds one instance of a hash function with a specific seed and map size
 type LXRHash2 struct {
-	ByteMap     []byte // Integer Offsets
-	MapSize     uint64 // Size of the translation table
-	MapSizeBits uint64 // Size of the ByteMap in Bits
-	Passes      uint64 // Passes to generate the rand table
-	Seed        uint64 // An arbitrary number used to create the tables.
-	HashSize    uint64 // Number of bytes in the hash
-	FirstIdx    uint64 // First Index used by LXRHash. (variance measures distribution of ByteMap access)
-	verbose     bool
+	ByteMap         []byte // Integer Offsets
+	MapSize         uint64 // Size of the translation table
+	MapSizeBits     uint64 // Size of the ByteMap in Bits
+	Passes          uint64 // Passes to generate the rand table
+	Seed            uint64 // An arbitrary number used to create the tables.
+	ValidationIndex uint64 // If we have loaded only part of the ByteNap, this is the index to that part
+	ValidationSize  uint64 // How many Bytes of the ByteMap loaded.
+	HashSize        uint64 // Number of bytes in the hash
+	FirstIdx        uint64 // First Index used by LXRHash. (variance measures distribution of ByteMap access)
+	verbose         bool
 }
 
 // Returns just the 32 byte hash.
@@ -27,12 +29,20 @@ func (lx *LXRHash2) Hash(src []byte) []byte {
 }
 
 // Hash takes the arbitrary input and returns what amounts to a 256 byte hash.  32 bytes are the literal hash
-// of the data using the ByteMap, and the remaining 196 bytes are the inputs from the ByteMap required to recompute
-// the hash.
+// of the data using the ByteMap, and the remaining 224 bytes are the validation stream, what were the inputs
+// from the ByteMap required to recompute the hash.
 //
 // Takes the source document, and the 256 byte hash.  If the hash is nil, the hash is computed.  If the hash is given
 // then we return the hash if it validates, or a nil if the hash fails validation.
-func (lx *LXRHash2) HashValidate(src []byte, hash []byte) ([]byte, error) {
+func (lx *LXRHash2) HashValidate(src []byte, hash []byte) (nhash []byte, err error) {
+	defer func() {
+		// If the validation stream is invalid, we will panic;  catch that panic and report a proper error.
+		if r := recover(); r != nil {
+			nhash = nil
+			err = errors.New("error found in the validation stream of the hash")
+		}
+	}()
+
 	// The hash to validate must be nil (so we compute it) or length 256 if we are validating the hash.
 	if hash != nil && len(hash) != 256 {
 		return nil, errors.New("hash is the incorrect length")
@@ -47,7 +57,16 @@ func (lx *LXRHash2) HashValidate(src []byte, hash []byte) ([]byte, error) {
 	if hash != nil {
 		h := hash[32:] // h will point to the validation bytes of the hash
 		// But if it turns out we are validating a hash, not building one, then use the validation byte source
-		B = func(v uint64) (b byte) { b, h = h[0], h[1:]; return b }
+		B = func(v uint64) (b byte) {
+			b = h[0]
+			if v >= lx.ValidationIndex && v < lx.ValidationIndex+lx.ValidationSize {
+				if b != lx.ByteMap[v] {
+					panic("invalid validation stream")
+				}
+			}
+			h = h[1:]
+			return b
+		}
 	}
 
 	// The offset variable is all the state we really need for PoW.  The more complex state used in

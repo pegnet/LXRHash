@@ -5,6 +5,8 @@ package testing_test
 import (
 	"fmt"
 	"testing"
+
+	lxr "github.com/pegnet/LXRHash"
 )
 
 func TestBitsOfHash(t *testing.T) {
@@ -120,4 +122,93 @@ func TestBitsOfValidation(t *testing.T) {
 	fmt.Printf("Total Bytes Changed %15d Total Bytes %15d Percent Changed %6.3f%% \n", bytesChanged, TotalBytes, float64(bytesChanged)/float64(TotalBytes)*100)
 	fmt.Println("Validation bytes")
 	fmt.Printf(" 1 out of 256 %10.5f\n", float64(1)/2/2/2/2/2/2/2/2)
+}
+
+// Tests to ensure a single bit flipped in the Verification bytes results in the order of 50% of the hash
+// changing.
+func TestVerificationBytes(t *testing.T) {
+	LX.Init(Seed, MapSizeBits, HashSize, Passes)
+
+	LX.ValidationSize = 100000000
+	LX.ValidationIndex = 30000000
+
+	LXs := new(lxr.LXRHash2)
+	LXs.Init(Seed, 10, 32, 5)
+
+	SumBitsChanged := 0
+	TotalBits := 0
+	bytesChanged := 0
+	TotalBytes := 0
+
+	const bufferlen = 40
+
+	for i := 0; i < 10000; i++ {
+		buf := Getbuf(40)
+
+		for j := 0; j < 256-32; j++ {
+			for k := uint(0); k < 8; k++ {
+				bit := byte(1 << k)
+				wvo, _ := LX.HashValidate(buf, nil)
+				wvo[32+j] = wvo[32+j] ^ bit
+				wvn, err := LX.HashValidate(buf, wvo)
+				if err == nil {
+					t.Fail()
+				}
+				for bc := 0; bc < 32; bc++ {
+					for bcb := uint(0); bcb < 8; bcb++ {
+						bit := byte(1) << bcb
+						if wvo[bc]&bit != wvn[bc]&bit {
+							SumBitsChanged++
+						}
+						TotalBits++
+					}
+					if wvo[bc] != wvn[bc] {
+						bytesChanged++
+					}
+					TotalBytes++
+				}
+			}
+		}
+	}
+
+	fmt.Println("hash")
+	fmt.Printf("Total Bits  Changed %15d Total Bits  %15d Percent Changed %6.3f%% \n", SumBitsChanged, TotalBits, float64(SumBitsChanged)/float64(TotalBits)*100)
+	fmt.Printf("Total Bytes Changed %15d Total Bytes %15d Percent Changed %6.3f%% \n", bytesChanged, TotalBytes, float64(bytesChanged)/float64(TotalBytes)*100)
+	fmt.Println("Validation bytes")
+	fmt.Printf(" 1 out of 256 %10.5f\n", float64(1)/2/2/2/2/2/2/2/2)
+}
+
+// TestFastValidation(t *testing.T)
+// Test Fast Validation
+func TestFastValidation(t *testing.T) {
+	LX.Init(Seed, MapSizeBits, HashSize, Passes)
+
+	LXs := new(lxr.LXRHash2)
+	LXs.Init(Seed, 10, 32, 5)
+
+	var VSize, FailCaught, Total [49]int
+
+	for i := 0; i < 1; i++ {
+		buf := []byte("Now is the time for all good men to come to the aid of their country.")
+
+		for j := float64(1); j < 50; j++ {
+			percent := j / 100
+			VSize[int(j-1)] = int(float64(LX.MapSize) * percent)
+			LX.ValidationSize = uint64(VSize[int(j-1)])
+			LX.ValidationIndex = 0
+			wvo, _ := LXs.HashValidate(buf, nil)
+			_, err := LX.HashValidate(buf, wvo)
+			if err == nil {
+				FailCaught[int(j)-1]++
+			}
+			Total[int(j)-1]++
+		}
+		for i, fc := range FailCaught {
+			fmt.Printf("Percent Backing %5.3f%%  Percent Fail %5.3f\n",
+				float64(VSize[i])/float64(LX.MapSize)*100,
+				float64(fc)/float64(Total[i]))
+
+		}
+	}
+
 }
