@@ -181,34 +181,35 @@ func TestVerificationBytes(t *testing.T) {
 // TestFastValidation(t *testing.T)
 // Test Fast Validation
 func TestFastValidation(t *testing.T) {
-	LX.Init(Seed, MapSizeBits, HashSize, Passes)
+	LX.Init(Seed, 30, HashSize, Passes)
 
 	LXs := new(lxr.LXRHash2)
-	LXs.Init(Seed, 10, 32, 5)
+	LXs.Init(Seed, 10, 256, 5)
 
 	var VSize, FailCaught, Total [49]int
 
-	for i := 0; i < 1; i++ {
-		buf := []byte("Now is the time for all good men to come to the aid of their country.")
+	for i := 0; i < 10000; i++ {
 
-		for j := float64(1); j < 50; j++ {
+		for j := float64(1); j < 10; j++ {
+			buf := Getbuf(40)
 			percent := j / 100
 			VSize[int(j-1)] = int(float64(LX.MapSize) * percent)
 			LX.ValidationSize = uint64(VSize[int(j-1)])
 			LX.ValidationIndex = 0
 			wvo, _ := LXs.HashValidate(buf, nil)
 			_, err := LX.HashValidate(buf, wvo)
-			if err == nil {
+			if err != nil {
 				FailCaught[int(j)-1]++
 			}
 			Total[int(j)-1]++
 		}
-		for i, fc := range FailCaught {
-			fmt.Printf("Percent Backing %5.3f%%  Percent Fail %5.3f\n",
-				float64(VSize[i])/float64(LX.MapSize)*100,
-				float64(fc)/float64(Total[i]))
 
-		}
+	}
+	for i, fc := range FailCaught {
+		fmt.Printf("Percent Backing %5.0f%%  Fail %15.13f%%\n",
+			float64(VSize[i])/float64(LX.MapSize)*100,
+			float64(fc)/float64(Total[i])*100)
+
 	}
 
 }

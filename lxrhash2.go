@@ -53,13 +53,23 @@ func (lx *LXRHash2) HashValidate(src []byte, hash []byte) (nhash []byte, err err
 	var vlist []byte
 
 	// Pick a function; assume that we are building a hash, not validating a hash
-	B := func(v uint64) byte { b := lx.ByteMap[v&mk]; vlist = append(vlist, b); return b }
+	var h []byte
+	var vlimit uint64
 	if hash != nil {
-		h := hash[32:] // h will point to the validation bytes of the hash
+		h = hash[32:] // h will point to the validation bytes of the hash
 		// But if it turns out we are validating a hash, not building one, then use the validation byte source
-		B = func(v uint64) (b byte) {
-			b = h[0]
-			if v >= lx.ValidationIndex && v < lx.ValidationIndex+lx.ValidationSize {
+		vlimit = lx.ValidationIndex + lx.ValidationSize
+	}
+
+	B := func(v uint64) byte {
+		if hash == nil {
+			b := lx.ByteMap[v&mk]
+			vlist = append(vlist, b)
+			return b
+		} else {
+			v = v & mk
+			b := h[0]
+			if v >= lx.ValidationIndex && v < vlimit {
 				if b != lx.ByteMap[v] {
 					panic("invalid validation stream")
 				}
