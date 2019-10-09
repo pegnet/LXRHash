@@ -10,7 +10,6 @@ type LXRHash struct {
 	Passes      uint64 // Passes to generate the rand table
 	Seed        uint64 // An arbitrary number used to create the tables.
 	HashSize    uint64 // Number of bytes in the hash
-	FirstIdx    uint64 // First Index used by LXRHash. (variance measures distribution of ByteMap access)
 	verbose     bool
 }
 
@@ -93,12 +92,9 @@ func (lx *LXRHash) Hash(src []byte) []byte {
 
 	idx = 0
 	// Actual work to compute the hash
-	for i, v2 := range src {
+	for _, v2 := range src {
 		if idx >= lx.HashSize { // Use an if to avoid modulo math
 			idx = 0
-		}
-		if i == 0 {
-			lx.FirstIdx = (as>>5 ^ uint64(v2)) & mk
 		}
 		step(uint64(v2), idx)
 		idx++
