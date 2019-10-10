@@ -14,7 +14,7 @@ type LXRHash struct {
 }
 
 // Hash takes the arbitrary input and returns the resulting hash of length HashSize
-func (lx *LXRHash) Hash(src []byte) []byte {
+func (lx LXRHash) Hash(src []byte) []byte {
 	// Keep the byte intermediate results as int64 values until reduced.
 	hs := make([]uint64, lx.HashSize)
 	// as accumulates the state as we walk through applying the source data through the lookup map
