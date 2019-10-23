@@ -15,8 +15,7 @@ type LXRHash2 struct {
 	MapSizeBits     uint64 // Size of the ByteMap in Bits
 	Passes          uint64 // Passes to generate the rand table
 	Seed            uint64 // An arbitrary number used to create the tables.
-	ValidationIndex uint64 // If we have loaded only part of the ByteNap, this is the index to that part
-	ValidationSize  uint64 // How many Bytes of the ByteMap loaded.
+	ValidationSize  uint64 // How many Bytes of the start of the ByteMap loaded.
 	HashSize        uint64 // Number of bytes in the hash
 	FirstIdx        uint64 // First Index used by LXRHash. (variance measures distribution of ByteMap access)
 	verbose         bool
@@ -34,6 +33,9 @@ func (lx *LXRHash2) Hash(src []byte) []byte {
 //
 // Takes the source document, and the 256 byte hash.  If the hash is nil, the hash is computed.  If the hash is given
 // then we return the hash if it validates, or a nil if the hash fails validation.
+//
+// On average, a valid hash must have 10 hits in the low 10 percent of the ByteMap.  Otherwise, we return all
+// zeros for the hash.  This is a PoW hash, so we have no obligation to return a hash for every value provided
 func (lx *LXRHash2) HashValidate(src []byte, hash []byte) (nhash []byte, err error) {
 	defer func() {
 		// If the validation stream is invalid, we will panic;  catch that panic and report a proper error.
@@ -42,6 +44,8 @@ func (lx *LXRHash2) HashValidate(src []byte, hash []byte) (nhash []byte, err err
 			err = errors.New("error found in the validation stream of the hash")
 		}
 	}()
+
+	low10percent := 0
 
 	// The hash to validate must be nil (so we compute it) or length 256 if we are validating the hash.
 	if hash != nil && len(hash) != 256 {
@@ -58,19 +62,23 @@ func (lx *LXRHash2) HashValidate(src []byte, hash []byte) (nhash []byte, err err
 	if hash != nil {
 		h = hash[32:] // h will point to the validation bytes of the hash
 		// But if it turns out we are validating a hash, not building one, then use the validation byte source
-		vlimit = lx.ValidationIndex + lx.ValidationSize
 	}
 
 	B := func(v uint64) byte {
+		vmk := v&mk
+
 		if hash == nil {
-			b := lx.ByteMap[v&mk]
+			if vmk < lx.ValidationSize {
+				low10percent++
+			}
+			b := lx.ByteMap[vmk]
 			vlist = append(vlist, b)
 			return b
 		} else {
-			v = v & mk
 			b := h[0]
-			if v >= lx.ValidationIndex && v < vlimit {
+			if v < vlimit {
 				if b != lx.ByteMap[v] {
+					low10percent++
 					panic("invalid validation stream")
 				}
 			}
@@ -125,6 +133,12 @@ func (lx *LXRHash2) HashValidate(src []byte, hash []byte) (nhash []byte, err err
 	for i, b := range data {
 		offset = offset<<11 ^ offset>>1 ^ uint64(b)<<32 ^ uint64(b)
 		data[i] = byte(offset)
+	}
+
+	// If this hash didn't hit the low 10% of the ByteMap at least 10 times, then we consider it invalid
+	if low10percent < 10 {
+		var nilhash [256]byte
+		return nilhash[:],nil
 	}
 
 	// If we are validating the hash, then return either a nil or the hash we were given.
