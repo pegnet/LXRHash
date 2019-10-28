@@ -47,8 +47,6 @@ func (lx *LXRHash) Init(Seed, MapSizeBits, HashSize, Passes uint64) {
 	}
 
 	MapSize := uint64(1) << MapSizeBits
-	lx.ByteMap = make([]byte, int(MapSize))
-
 	lx.HashSize = (HashSize + 7) / 8
 	lx.MapSize = MapSize
 	lx.MapSizeBits = MapSizeBits
@@ -61,7 +59,6 @@ func (lx *LXRHash) Init(Seed, MapSizeBits, HashSize, Passes uint64) {
 // ReadTable attempts to load the ByteMap from disk.
 // If that doesn't exist, a new one will be generated and saved.
 func (lx *LXRHash) ReadTable() {
-
 	u, err := user.Current()
 	if err != nil {
 		panic(err)
@@ -129,7 +126,7 @@ func (lx *LXRHash) WriteTable(filename string) {
 // Initializes the map with an incremental sequence of bytes,
 // then does P passes, shuffling each element in a deterministic manner.
 func (lx *LXRHash) GenerateTable() {
-
+	lx.ByteMap = make([]byte, int(lx.MapSize))
 	// Our own "random" generator that really is just used to shuffle values
 	offset := lx.Seed ^ firstrand
 	b := lx.Seed ^ firstb
