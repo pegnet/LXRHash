@@ -41,23 +41,8 @@ func (lx LXRHash) HashWork(baseData []byte, batch [][]byte) [][]byte {
 		return baseData[idx]
 	}
 
-	for x := 0; x < len(baseData); x++ {
-		i := 0
-		if idxs[i] >= lx.HashSize { // Use an if to avoid modulo math
-			idxs[i] = 0
-		}
-
-		ass[i], s1s[i], s2s[i], s3s[i] = lx.fastStepf(uint64(base(i, x)), ass[i], s1s[i], s2s[i], s3s[i], idxs[i], hss[i])
-		idxs[i]++
-	}
-
-	for i := 0; i < len(batch); i++ {
-		ass[i], s1s[i], s2s[i], s3s[i], idxs[i] = ass[0], s1s[0], s2s[0], s3s[0], idxs[0]
-		copy(hss[i], hss[0])
-	}
-
 	// Fast spin to prevent caching state
-	for x := len(baseData); x < fullL; x++ {
+	for x := 0; x < fullL; x++ {
 		for i := 0; i < len(batch); i++ {
 			if idxs[i] >= lx.HashSize { // Use an if to avoid modulo math
 				idxs[i] = 0
