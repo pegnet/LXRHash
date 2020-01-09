@@ -4,6 +4,8 @@ package lxr
 
 import (
 	"bytes"
+	"crypto/rand"
+	"encoding/binary"
 	"encoding/hex"
 	"testing"
 )
@@ -76,6 +78,34 @@ func TestKnownHashes(t *testing.T) {
 
 		if !bytes.Equal(hash, val) {
 			t.Errorf("mismatch for %s. got = %s, want = %s", k, hex.EncodeToString(hash), v)
+		}
+	}
+
+}
+
+func TestBatch(t *testing.T) {
+	batchsize := 512
+	batch := make([][]byte, batchsize)
+	start := uint32(0)
+	static := make([]byte, 32)
+	rand.Read(static)
+
+	for i := range batch {
+		batch[i] = make([]byte, 4)
+		binary.BigEndian.PutUint32(batch[i], start+uint32(i))
+	}
+
+	results := lx.HashWork(static, batch)
+	for i := range results {
+		// do something with the result here
+		// nonce = batch[i]
+		// input = append(base, batch[i]...)
+		// hash = results[i]
+		h := results[i]
+		h2 := lx.Hash(append(static, batch[i]...))
+
+		if !bytes.Equal(h, h2) {
+			t.Errorf("not same, batch failed\n%x\n%x", h, h2)
 		}
 	}
 
