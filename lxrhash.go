@@ -2,6 +2,8 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 package lxr
 
+import "fmt"
+
 // LXRHash holds one instance of a hash function with a specific seed and map size
 type LXRHash struct {
 	ByteMap     []byte // Integer Offsets
@@ -11,6 +13,10 @@ type LXRHash struct {
 	Seed        uint64 // An arbitrary number used to create the tables.
 	HashSize    uint64 // Number of bytes in the hash
 	verbose     bool
+}
+
+func init() {
+	fmt.Println("cache faststep")
 }
 
 func (lx LXRHash) HashWork(baseData []byte, batch [][]byte) [][]byte {
@@ -35,8 +41,23 @@ func (lx LXRHash) HashWork(baseData []byte, batch [][]byte) [][]byte {
 		return baseData[idx]
 	}
 
+	for x := 0; x < len(baseData); x++ {
+		i := 0
+		if idxs[i] >= lx.HashSize { // Use an if to avoid modulo math
+			idxs[i] = 0
+		}
+
+		ass[i], s1s[i], s2s[i], s3s[i] = lx.fastStepf(uint64(base(i, x)), ass[i], s1s[i], s2s[i], s3s[i], idxs[i], hss[i])
+		idxs[i]++
+	}
+
+	for i := 0; i < len(batch); i++ {
+		ass[i], s1s[i], s2s[i], s3s[i], idxs[i] = ass[0], s1s[0], s2s[0], s3s[0], idxs[0]
+		copy(hss[i], hss[0])
+	}
+
 	// Fast spin to prevent caching state
-	for x := 0; x < fullL; x++ {
+	for x := len(baseData); x < fullL; x++ {
 		for i := 0; i < len(batch); i++ {
 			if idxs[i] >= lx.HashSize { // Use an if to avoid modulo math
 				idxs[i] = 0
@@ -91,40 +112,23 @@ func (lx LXRHash) fastStepf(v2, as, s1, s2, s3, idx uint64, hs []uint64) (uint64
 }
 
 func (lx LXRHash) stepf(as, s1, s2, s3, v2 uint64, hs []uint64, idx uint64, mk uint64) (uint64, uint64, uint64, uint64) {
-	s1 = s1<<9 ^ s1>>1 ^ as ^ uint64(lx.ByteMap[(as>>5^v2)&mk])<<3
-	// Shifts are not random.  They are selected to ensure that
-	s1 = s1<<5 ^ s1>>3 ^ uint64(lx.ByteMap[(s1^v2)&mk])<<7
-	// Prior bytes pulled from the ByteMap contribute to the
-	s1 = s1<<7 ^ s1>>7 ^ uint64(lx.ByteMap[(as^s1>>7)&mk])<<5
-	// next access of the ByteMap, either by contributing to
-	s1 = s1<<11 ^ s1>>5 ^ uint64(lx.ByteMap[(v2^as>>11^s1)&mk])<<27
-	// the lower bits of the index, or in the upper bits that
-	_ = 0
-	// move the access further in the map.
-	hs[idx] = s1 ^ as ^ hs[idx]<<7 ^ hs[idx]>>13
-	//
-	_ = 0
-	// We also pay attention not only to where the ByteMap bits
-	as = as<<17 ^ as>>5 ^ s1 ^ uint64(lx.ByteMap[(as^s1>>27^v2)&mk])<<3
-	// are applied, but what bits we use in the indexing of
-	as = as<<13 ^ as>>3 ^ uint64(lx.ByteMap[(as^s1)&mk])<<7
-	// the ByteMap
-	as = as<<15 ^ as>>7 ^ uint64(lx.ByteMap[(as>>7^s1)&mk])<<11
-	//
-	as = as<<9 ^ as>>11 ^ uint64(lx.ByteMap[(v2^as^s1)&mk])<<3
-	// Tests run against this set of shifts show that the
-	_ = 0
-	// bytes pulled from the ByteMap are evenly distributed
-	s1 = s1<<7 ^ s1>>27 ^ as ^ uint64(lx.ByteMap[(as>>3)&mk])<<13
-	// over possible byte values (0-255) and indexes into
-	s1 = s1<<3 ^ s1>>13 ^ uint64(lx.ByteMap[(s1^v2)&mk])<<11
-	// the ByteMap are also evenly distributed, and the
-	s1 = s1<<8 ^ s1>>11 ^ uint64(lx.ByteMap[(as^s1>>11)&mk])<<9
-	// deltas between bytes provided map to a curve expected
-	s1 = s1<<6 ^ s1>>9 ^ uint64(lx.ByteMap[(v2^as^s1)&mk])<<3
-	// (fewer maximum and minimum deltas, and most deltas around
-	_ = 0
-	// zero.
+	s1 = s1<<9 ^ s1>>1 ^ as ^ uint64(lx.ByteMap[(as>>5^v2)&mk])<<3      // Shifts are not random.  They are selected to ensure that
+	s1 = s1<<5 ^ s1>>3 ^ uint64(lx.ByteMap[(s1^v2)&mk])<<7              // Prior bytes pulled from the ByteMap contribute to the
+	s1 = s1<<7 ^ s1>>7 ^ uint64(lx.ByteMap[(as^s1>>7)&mk])<<5           // next access of the ByteMap, either by contributing to
+	s1 = s1<<11 ^ s1>>5 ^ uint64(lx.ByteMap[(v2^as>>11^s1)&mk])<<27     // the lower bits of the index, or in the upper bits that
+	_ = 0                                                               // move the access further in the map.
+	hs[idx] = s1 ^ as ^ hs[idx]<<7 ^ hs[idx]>>13                        //
+	_ = 0                                                               // We also pay attention not only to where the ByteMap bits
+	as = as<<17 ^ as>>5 ^ s1 ^ uint64(lx.ByteMap[(as^s1>>27^v2)&mk])<<3 // are applied, but what bits we use in the indexing of
+	as = as<<13 ^ as>>3 ^ uint64(lx.ByteMap[(as^s1)&mk])<<7             // the ByteMap
+	as = as<<15 ^ as>>7 ^ uint64(lx.ByteMap[(as>>7^s1)&mk])<<11         //
+	as = as<<9 ^ as>>11 ^ uint64(lx.ByteMap[(v2^as^s1)&mk])<<3          // Tests run against this set of shifts show that the
+	_ = 0                                                               // bytes pulled from the ByteMap are evenly distributed
+	s1 = s1<<7 ^ s1>>27 ^ as ^ uint64(lx.ByteMap[(as>>3)&mk])<<13       // over possible byte values (0-255) and indexes into
+	s1 = s1<<3 ^ s1>>13 ^ uint64(lx.ByteMap[(s1^v2)&mk])<<11            // the ByteMap are also evenly distributed, and the
+	s1 = s1<<8 ^ s1>>11 ^ uint64(lx.ByteMap[(as^s1>>11)&mk])<<9         // deltas between bytes provided map to a curve expected
+	s1 = s1<<6 ^ s1>>9 ^ uint64(lx.ByteMap[(v2^as^s1)&mk])<<3           // (fewer maximum and minimum deltas, and most deltas around
+	_ = 0                                                               // zero.
 	as = as<<23 ^ as>>3 ^ s1 ^ uint64(lx.ByteMap[(as^v2^s1>>3)&mk])<<7
 	as = as<<17 ^ as>>7 ^ uint64(lx.ByteMap[(as^s1>>3)&mk])<<5
 	as = as<<13 ^ as>>5 ^ uint64(lx.ByteMap[(as>>5^s1)&mk])<<1
