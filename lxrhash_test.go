@@ -5,6 +5,7 @@ package lxr
 import (
 	"bytes"
 	"encoding/hex"
+	"math/rand"
 	"testing"
 )
 
@@ -79,4 +80,14 @@ func TestKnownHashes(t *testing.T) {
 		}
 	}
 
+}
+
+func TestLXRHash_Hash(t *testing.T) {
+	for i := 0; i < 1000; i++ {
+		data := make([]byte, rand.Intn(100))
+		h1, h2 := lx.Hash(data), lx.HashWithAnonFuncs(data)
+		if bytes.Compare(h1, h2) != 0 {
+			t.Errorf("mismatch hashes\n%x\n%x", h1, h2)
+		}
+	}
 }
