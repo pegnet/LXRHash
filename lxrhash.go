@@ -146,7 +146,7 @@ func (lx LXRHash) stepf(as, s1, s2, s3, v2 uint64, hs []uint64, idx uint64, mk u
 }
 
 // Hash takes the arbitrary input and returns the resulting hash of length HashSize
-func (lx LXRHash) Hash(src []byte) []byte {
+func (lx LXRHash) HashWithAnon(src []byte) []byte {
 	// Keep the byte intermediate results as int64 values until reduced.
 	hs := make([]uint64, lx.HashSize)
 	// as accumulates the state as we walk through applying the source data through the lookup map
@@ -243,6 +243,58 @@ func (lx LXRHash) Hash(src []byte) []byte {
 	for i := len(hs) - 1; i >= 0; i-- {
 		step(hs[i], uint64(i))      // Step the hash functions and then
 		bytes[i] = b(as) ^ b(hs[i]) // Xor two resulting sequences
+	}
+
+	// Return the resulting hash
+	return bytes
+}
+
+// Hash takes the arbitrary input and returns the resulting hash of length HashSize
+// Does not use anonymous functions
+func (lx LXRHash) Hash(src []byte) []byte {
+	// Keep the byte intermediate results as int64 values until reduced.
+	hs := make([]uint64, lx.HashSize)
+	// as accumulates the state as we walk through applying the source data through the lookup map
+	// and combine it with the state we are building up.
+	var as = lx.Seed
+	// We keep a series of states, and roll them along through each byte of source processed.
+	var s1, s2, s3 uint64
+	// Since MapSize is specified in bits, the index mask is the size-1
+	mk := lx.MapSize - 1
+
+	idx := uint64(0)
+	// Fast spin to prevent caching state
+	for _, v2 := range src {
+		if idx >= lx.HashSize { // Use an if to avoid modulo math
+			idx = 0
+		}
+
+		as, s1, s2, s3 = lx.fastStepf(uint64(v2), as, s1, s2, s3, idx, hs)
+		idx++
+	}
+
+	idx = 0
+	// Actual work to compute the hash
+	for _, v2 := range src {
+		if idx >= lx.HashSize { // Use an if to avoid modulo math
+			idx = 0
+		}
+
+		as, s1, s2, s3 = lx.stepf(as, s1, s2, s3, uint64(v2), hs, idx, mk)
+		idx++
+	}
+
+	// Reduction pass
+	// Done by Interating over hs[] to produce the bytes[] hash
+	//
+	// At this point, we have HBits of state in hs.  We need to reduce them down to a byte,
+	// And we do so by doing a bit more bitwise math, and mapping the values through our byte map.
+
+	bytes := make([]byte, lx.HashSize)
+	// Roll over all the hs (one int64 value for every byte in the resulting hash) and reduce them to byte values
+	for i := len(hs) - 1; i >= 0; i-- {
+		as, s1, s2, s3 = lx.stepf(as, s1, s2, s3, uint64(hs[i]), hs, uint64(i), mk)
+		bytes[i] = lx.ByteMap[as&mk] ^ lx.ByteMap[hs[i]&mk] // Xor two resulting sequences
 	}
 
 	// Return the resulting hash
