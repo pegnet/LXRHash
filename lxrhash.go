@@ -13,6 +13,79 @@ type LXRHash struct {
 	verbose     bool
 }
 
+func (lx LXRHash) HashWork(baseData []byte, batch [][]byte) [][]byte {
+	fullL := len(baseData) + len(batch[0])
+	hss := make([][]uint64, len(batch))
+	ass := make([]uint64, len(batch))
+	s1s := make([]uint64, len(batch))
+	s2s := make([]uint64, len(batch))
+	s3s := make([]uint64, len(batch))
+	idxs := make([]uint64, len(batch))
+	mk := lx.MapSize - 1
+
+	for i := 0; i < len(batch); i++ {
+		hss[i] = make([]uint64, lx.HashSize)
+		ass[i] = lx.Seed
+	}
+
+	base := func(b, idx int) byte{
+		if idx >= len(baseData) {
+			return batch[b][idx-len(baseData)]
+		}
+		return baseData[idx]
+	}
+
+
+
+	// Fast spin to prevent caching state
+	for x := 0; x < fullL; x++ {
+		for i := 0; i < len(batch); i++ {
+			if idxs[i] >= lx.HashSize { // Use an if to avoid modulo math
+				idxs[i] = 0
+			}
+
+			lx.fastStepf(uint64(base(i, x)), ass[i], s1s[i], s2s[i], s3s[i], idxs[i], hss[i])
+			idxs[i]++
+		}
+	}
+
+	idxs = make([]uint64, len(batch))
+	// Actual work to compute the hash
+	for x := 0; x < fullL; x++ {
+		for i := 0; i < len(batch); i++ {
+			if idxs[i] >= lx.HashSize { // Use an if to avoid modulo math
+				idxs[i] = 0
+			}
+			v2 := uint64(base(i, x))
+			s1s[i], ass[i], s2s[i] = lx.stepf(s1s[i], ass[i], v2, hss[i], idxs[i], s2s[i], mk)
+
+			s1s[i], s2s[i], s3s[i] = s3s[i], s1s[i], s2s[i]
+
+			idxs[i]++
+		}
+	}
+
+	// Reduction pass
+	// Done by Interating over hs[] to produce the bytes[] hash
+	//
+	// At this point, we have HBits of state in hs.  We need to reduce them down to a byte,
+	// And we do so by doing a bit more bitwise math, and mapping the values through our byte map.
+
+	bytes := make([][]byte, len(batch))
+	for i := range bytes {
+		bytes[i] = make([]byte, lx.HashSize)
+	}
+	// Roll over all the hs (one int64 value for every byte in the resulting hash) and reduce them to byte values
+	for j := int(lx.HashSize) - 1; j >= 0; j-- {
+		for i := 0; i < len(batch); i++ {
+			s1s[i], ass[i], s2s[i] = lx.stepf(s1s[i], ass[i], uint64(hss[i][j]), hss[i], uint64(j), s2s[i], mk)
+			bytes[i][j] = lx.ByteMap[ass[i]&mk] ^ lx.ByteMap[uint64(hss[i][j])&mk] // Xor two resulting sequences
+		}
+	}
+
+	return bytes
+}
+
 func (lx LXRHash) fastStepf(v2, as, s1, s2, s3, idx uint64, hs []uint64) (uint64, uint64, uint64, uint64) {
 	b := uint64(lx.ByteMap[(as^v2)&(lx.MapSize-1)])
 	as = as<<7 ^ as>>5 ^ v2<<20 ^ v2<<16 ^ v2 ^ b<<20 ^ b<<12 ^ b<<4
