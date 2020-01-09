@@ -28,14 +28,12 @@ func (lx LXRHash) HashWork(baseData []byte, batch [][]byte) [][]byte {
 		ass[i] = lx.Seed
 	}
 
-	base := func(b, idx int) byte{
+	base := func(b, idx int) byte {
 		if idx >= len(baseData) {
 			return batch[b][idx-len(baseData)]
 		}
 		return baseData[idx]
 	}
-
-
 
 	// Fast spin to prevent caching state
 	for x := 0; x < fullL; x++ {
@@ -44,7 +42,7 @@ func (lx LXRHash) HashWork(baseData []byte, batch [][]byte) [][]byte {
 				idxs[i] = 0
 			}
 
-			lx.fastStepf(uint64(base(i, x)), ass[i], s1s[i], s2s[i], s3s[i], idxs[i], hss[i])
+			ass[i], s1s[i], s2s[i], s3s[i] = lx.fastStepf(uint64(base(i, x)), ass[i], s1s[i], s2s[i], s3s[i], idxs[i], hss[i])
 			idxs[i]++
 		}
 	}
@@ -57,10 +55,7 @@ func (lx LXRHash) HashWork(baseData []byte, batch [][]byte) [][]byte {
 				idxs[i] = 0
 			}
 			v2 := uint64(base(i, x))
-			s1s[i], ass[i], s2s[i] = lx.stepf(s1s[i], ass[i], v2, hss[i], idxs[i], s2s[i], mk)
-
-			s1s[i], s2s[i], s3s[i] = s3s[i], s1s[i], s2s[i]
-
+			ass[i], s1s[i], s2s[i], s3s[i] = lx.stepf(ass[i], s1s[i], s2s[i], s3s[i], v2, hss[i], idxs[i], mk)
 			idxs[i]++
 		}
 	}
@@ -78,7 +73,7 @@ func (lx LXRHash) HashWork(baseData []byte, batch [][]byte) [][]byte {
 	// Roll over all the hs (one int64 value for every byte in the resulting hash) and reduce them to byte values
 	for j := int(lx.HashSize) - 1; j >= 0; j-- {
 		for i := 0; i < len(batch); i++ {
-			s1s[i], ass[i], s2s[i] = lx.stepf(s1s[i], ass[i], uint64(hss[i][j]), hss[i], uint64(j), s2s[i], mk)
+			ass[i], s1s[i], s2s[i], s3s[i] = lx.stepf(ass[i], s1s[i], s2s[i], s3s[i], uint64(hss[i][j]), hss[i], uint64(j), mk)
 			bytes[i][j] = lx.ByteMap[ass[i]&mk] ^ lx.ByteMap[uint64(hss[i][j])&mk] // Xor two resulting sequences
 		}
 	}
