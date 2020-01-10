@@ -108,5 +108,10 @@ func TestBatch(t *testing.T) {
 			t.Errorf("not same, batch failed\n%x\n%x", h, h2)
 		}
 	}
+}
 
+func TestAbortSettings(t *testing.T) {
+	if b, v := AbortSettings(0xffac55c69ecabf4f); b != 1 || v != 0xac {
+		t.Errorf("unexpected")
+	}
 }
