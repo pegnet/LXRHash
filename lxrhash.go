@@ -2,6 +2,8 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 package lxr
 
+import "encoding/binary"
+
 // LXRHash holds one instance of a hash function with a specific seed and map size
 type LXRHash struct {
 	ByteMap     []byte // Integer Offsets
@@ -13,7 +15,26 @@ type LXRHash struct {
 	verbose     bool
 }
 
+func AbortSettings(target uint64) (abortByte int, abortVal uint8) {
+	data := make([]byte, 8)
+	binary.BigEndian.PutUint64(data, target)
+	for i := range data {
+		if data[i] != 0xFF {
+			return i, data[i]
+		}
+	}
+	return -1, 0
+}
+
+func (lx LXRHash) HashWorkAbort(baseData []byte, batch [][]byte, abortByte int, abortVal uint8) [][]byte {
+	return lx.hashWork(baseData, batch, abortByte, abortVal)
+}
+
 func (lx LXRHash) HashWork(baseData []byte, batch [][]byte) [][]byte {
+	return lx.hashWork(baseData, batch, -1, 0)
+}
+
+func (lx LXRHash) hashWork(baseData []byte, batch [][]byte, abortByte int, abortVal uint8) [][]byte {
 	fullL := len(baseData) + len(batch[0])
 	hss := make([][]uint64, len(batch))
 	ass := make([]uint64, len(batch))
@@ -71,10 +92,16 @@ func (lx LXRHash) HashWork(baseData []byte, batch [][]byte) [][]byte {
 		bytes[i] = make([]byte, lx.HashSize)
 	}
 	// Roll over all the hs (one int64 value for every byte in the resulting hash) and reduce them to byte values
-	for j := int(lx.HashSize) - 1; j >= 0; j-- {
-		for i := 0; i < len(batch); i++ {
+	for i := 0; i < len(batch); i++ { // Cycle through batches first on this one.
+		// Cycling through batches first allows for an early abort
+		for j := int(lx.HashSize) - 1; j >= 0; j-- {
 			ass[i], s1s[i], s2s[i], s3s[i] = lx.stepf(ass[i], s1s[i], s2s[i], s3s[i], uint64(hss[i][j]), hss[i], uint64(j), mk)
 			bytes[i][j] = lx.ByteMap[ass[i]&mk] ^ lx.ByteMap[uint64(hss[i][j])&mk] // Xor two resulting sequences
+			if j == abortByte && bytes[i][j] < abortVal {
+				break // Stop the rollover, who cares
+			} else if j < abortByte && bytes[i][j] != 0xFF {
+				break // Stop the rollover, who cares
+			}
 		}
 	}
 
