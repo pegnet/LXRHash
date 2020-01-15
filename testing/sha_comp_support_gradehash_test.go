@@ -6,8 +6,6 @@ import (
 	rand2 "crypto/rand"
 	"fmt"
 	"time"
-
-	"github.com/dustin/go-humanize"
 )
 
 // Routines for collecting stats on Hashing algorithms and comparing them to other
@@ -146,7 +144,7 @@ func (g *Gradehash) Report(name string) (hashcount string, report string) {
 	}
 
 	spentv := float64(g.exctime) / 1000000000 // In seconds, divide by a billion
-	hps := humanize.Comma(int64(float64(g.numhashes) / spentv))
+	hps := Comma(uint64(float64(g.numhashes) / spentv))
 	spent := fmt.Sprintf("| %10s hps", hps)
 
 	// Calculate how far off from half (128) we are.  Cause that is what matters.
@@ -162,7 +160,7 @@ func (g *Gradehash) Report(name string) (hashcount string, report string) {
 	avgChanged := ""
 	avgChanged = fmt.Sprintf("bits: %11.8f", AvgBitsChanged-halfbits)
 
-	hashcount = humanize.Comma(int64(g.numhashes))
+	hashcount = Comma(uint64(g.numhashes))
 
 	report = fmt.Sprintf("%8s | SB %11.8f | %02x - %02x | score %12.10f | %s |",
 		name,
@@ -200,4 +198,16 @@ func Getbuf(length int) []byte {
 		panic(err)
 	}
 	return nbuf
+}
+
+func Comma(n uint64) string {
+	if n == 0 {
+		return "0"
+	}
+	var s string
+	for n > 999 {
+		s = fmt.Sprintf(",%03d", n%1000) + s
+		n /= 1000
+	}
+	return fmt.Sprintf("%d%s", n, s)
 }
