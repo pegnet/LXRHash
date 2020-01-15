@@ -24,7 +24,7 @@ matrix:
 # Only run the unit tests in the top level directory.
 # The nested directory tests are much longer.
 script:
-  - go test -v -timeout 45m .
+  - go test -v .
 
 # GO111MODULE will force Go modules
 # This will be unnecessary when Go 1.13 lands.
