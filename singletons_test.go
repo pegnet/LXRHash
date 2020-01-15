@@ -10,6 +10,9 @@ func testSize(t *testing.T, bits uint64, buf []byte, reference string) {
 	one := Init(Seed, bits, HashSize, Passes)
 	two := Init(Seed, bits, HashSize, Passes)
 
+	defer Release(one)
+	defer Release(two)
+
 	if one != two {
 		t.Errorf("[%d] two separate pointers for singleton: %x and %x", bits, &one, &two)
 	}
