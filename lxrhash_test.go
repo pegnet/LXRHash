@@ -48,7 +48,7 @@ func BenchmarkHash(b *testing.B) {
 				nonce = append(nonce, byte(j))
 			}
 			no := append(oprhash, nonce...)
-			lx.Hash(no)
+			lx.FlatHash(no)
 		}
 	})
 	b.Run("flat hash again", func(b *testing.B) {
@@ -59,7 +59,7 @@ func BenchmarkHash(b *testing.B) {
 				nonce = append(nonce, byte(j))
 			}
 			no := append(oprhash, nonce...)
-			lx.Hash(no)
+			lx.FlatHash(no)
 		}
 	})
 }
