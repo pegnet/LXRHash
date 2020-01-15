@@ -40,6 +40,28 @@ func BenchmarkHash(b *testing.B) {
 			lx.Hash(no)
 		}
 	})
+	b.Run("flat hash", func(b *testing.B) {
+		nonce := []byte{0, 0}
+		for i := 0; i < b.N; i++ {
+			nonce = nonce[:0]
+			for j := i; j > 0; j = j >> 8 {
+				nonce = append(nonce, byte(j))
+			}
+			no := append(oprhash, nonce...)
+			lx.FlatHash(no)
+		}
+	})
+	b.Run("flat hash again", func(b *testing.B) {
+		nonce := []byte{0, 0}
+		for i := 0; i < b.N; i++ {
+			nonce = nonce[:0]
+			for j := i; j > 0; j = j >> 8 {
+				nonce = append(nonce, byte(j))
+			}
+			no := append(oprhash, nonce...)
+			lx.FlatHash(no)
+		}
+	})
 }
 
 func TestKnownHashes(t *testing.T) {
@@ -80,12 +102,21 @@ func TestKnownHashes(t *testing.T) {
 		}
 	}
 
+	for k, v := range known {
+		hash := lx.FlatHash([]byte(k))
+		val, _ := hex.DecodeString(v)
+
+		if !bytes.Equal(hash, val) {
+			t.Errorf("flathash mismatch for %s. got = %s, want = %s", k, hex.EncodeToString(hash), v)
+		}
+	}
+
 }
 
 func TestLXRHash_Hash(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		data := make([]byte, rand.Intn(100))
-		h1, h2 := lx.Hash(data), lx.HashWithAnonFuncs(data)
+		h1, h2 := lx.Hash(data), lx.FlatHash(data)
 		if bytes.Compare(h1, h2) != 0 {
 			t.Errorf("mismatch hashes\n%x\n%x", h1, h2)
 		}
