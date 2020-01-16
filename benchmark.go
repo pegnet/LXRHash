@@ -32,22 +32,18 @@ func benchFunc(ctx context.Context, duration time.Duration, goroutines uint, f f
 		ctx = context.Background()
 	}
 
+	myctx, cancel := context.WithTimeout(ctx, duration)
+	defer cancel()
+
 	var hashes uint64
 	base := make([]byte, 32) // null base is ok
-	myctx, cancel := context.WithCancel(ctx)
 
 	start := time.Now()
 	for i := 0; i < int(goroutines); i++ {
 		go benchMiner(myctx, byte(i), &hashes, base, f)
 	}
 
-	timer := time.NewTimer(duration)
-	select {
-	case <-timer.C:
-	case <-myctx.Done():
-	}
-	cancel()
-
+	<-myctx.Done()
 	return hashes, time.Since(start)
 }
 
