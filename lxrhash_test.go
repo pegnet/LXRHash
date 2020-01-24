@@ -4,7 +4,6 @@ package lxr
 
 import (
 	"bytes"
-	crand "crypto/rand"
 	"encoding/binary"
 	"encoding/hex"
 	"math/rand"
@@ -20,7 +19,7 @@ func init() {
 }
 
 func BenchmarkHash(b *testing.B) {
-	b.Run("hash", func(b *testing.B) {
+	normalHash := func(b *testing.B) {
 		nonce := []byte{0, 0}
 		for i := 0; i < b.N; i++ {
 			nonce = nonce[:0]
@@ -30,19 +29,9 @@ func BenchmarkHash(b *testing.B) {
 			no := append(oprhash, nonce...)
 			lx.Hash(no)
 		}
-	})
-	b.Run("hash again", func(b *testing.B) {
-		nonce := []byte{0, 0}
-		for i := 0; i < b.N; i++ {
-			nonce = nonce[:0]
-			for j := i; j > 0; j = j >> 8 {
-				nonce = append(nonce, byte(j))
-			}
-			no := append(oprhash, nonce...)
-			lx.Hash(no)
-		}
-	})
-	b.Run("flat hash", func(b *testing.B) {
+	}
+
+	flatHash := func(b *testing.B) {
 		nonce := []byte{0, 0}
 		for i := 0; i < b.N; i++ {
 			nonce = nonce[:0]
@@ -52,18 +41,39 @@ func BenchmarkHash(b *testing.B) {
 			no := append(oprhash, nonce...)
 			lx.FlatHash(no)
 		}
-	})
-	b.Run("flat hash again", func(b *testing.B) {
-		nonce := []byte{0, 0}
-		for i := 0; i < b.N; i++ {
-			nonce = nonce[:0]
-			for j := i; j > 0; j = j >> 8 {
-				nonce = append(nonce, byte(j))
+	}
+
+	batchHash := func(b *testing.B) {
+		// Create sets based on b.N
+		batchsize := 128 // Feel free to tweak
+		sets := (b.N / batchsize) + 1
+		batches := make([][][]byte, sets)
+		for i := range batches {
+			batches[i] = make([][]byte, batchsize)
+			for j := range batches[i] {
+				batches[i][j] = make([]byte, 4)
+				binary.BigEndian.PutUint32(batches[i][j], uint32((i*batchsize)+j))
 			}
-			no := append(oprhash, nonce...)
-			lx.FlatHash(no)
 		}
-	})
+
+		// If you want to skip the setup, you can start the timer here.
+		// But the setup is included in the others, so it is also being
+		// included here. It might be better to make the batches on demand
+		// vs upfront.
+		for i := range batches {
+			lx.HashWork(oprhash, batches[i])
+		}
+	}
+
+	// The last hashing function always runs faster for some reason.
+	// So mix them up a bit
+	b.Run("hash", normalHash)
+	b.Run("flat hash", flatHash)
+	b.Run("hashwork", batchHash)
+
+	b.Run("hash again", normalHash)
+	b.Run("flat hash again", flatHash)
+	b.Run("hashwork again", batchHash)
 }
 
 func TestKnownHashes(t *testing.T) {
@@ -143,7 +153,8 @@ func TestBatch(t *testing.T) {
 	batch := make([][]byte, batchsize)
 	start := uint32(0)
 	static := make([]byte, 32)
-	crand.Read(static)
+	rand.Seed(0) // I want this deterministic
+	rand.Read(static)
 
 	for i := range batch {
 		batch[i] = make([]byte, 4)
@@ -167,10 +178,35 @@ func TestBatch(t *testing.T) {
 			t.Errorf("not same, batch failed\n%x\n%x", h, h3)
 		}
 	}
+
+	// Abort anything below this
+	setting := []byte{0xff, 0x24, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
+	b, v := AbortSettings(target(setting))
+	results = lx.HashWorkAbort(static, batch, b, v)
+	for i := range results {
+		// do something with the result here
+		// nonce = batch[i]
+		// input = append(base, batch[i]...)
+		// hash = results[i]
+		h := results[i]
+		h2 := lx.Hash(append(static, batch[i]...))
+
+		if h2[1] < setting[1] {
+			// first byte should be 00, as we should abort early
+			if h[0] != 0x00 {
+				t.Errorf("did not abort early: %x", h)
+			}
+		}
+	}
 }
 
 func TestAbortSettings(t *testing.T) {
 	if b, v := AbortSettings(0xffac55c69ecabf4f); b != 1 || v != 0xac {
 		t.Errorf("unexpected")
 	}
+}
+
+func target(b []byte) uint64 {
+	return uint64(b[7]) | uint64(b[6])<<8 | uint64(b[5])<<16 | uint64(b[4])<<24 |
+		uint64(b[3])<<32 | uint64(b[2])<<40 | uint64(b[1])<<48 | uint64(b[0])<<56
 }
