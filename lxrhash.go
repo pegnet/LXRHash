@@ -15,6 +15,9 @@ type LXRHash struct {
 	verbose     bool
 }
 
+// AbortSettings indicated the proper settings to abort if a hash is found
+// to be less than the target. Aborting early can save a few hash table
+// accesses
 func AbortSettings(target uint64) (abortByte int, abortVal uint8) {
 	data := make([]byte, 8)
 	binary.BigEndian.PutUint64(data, target)
@@ -26,6 +29,8 @@ func AbortSettings(target uint64) (abortByte int, abortVal uint8) {
 	return -1, 0
 }
 
+// HashWorkAbort enables the use of the abort settings to abort a hash slightly
+// early.
 func (lx LXRHash) HashWorkAbort(baseData []byte, batch [][]byte, abortByte int, abortVal uint8) [][]byte {
 	return lx.hashWork(baseData, batch, abortByte, abortVal)
 }
@@ -34,6 +39,11 @@ func (lx LXRHash) HashWork(baseData []byte, batch [][]byte) [][]byte {
 	return lx.hashWork(baseData, batch, -1, 0)
 }
 
+// hashWork does a batch of hashes in paralell by doing each step of of the hash
+// across multiple nonces. This is opposed to running each nonce in it's
+// entirety before starting the next one.
+//
+// The theory is there is a more efficient use of the cpu cache.
 func (lx LXRHash) hashWork(baseData []byte, batch [][]byte, abortByte int, abortVal uint8) [][]byte {
 	fullL := len(baseData) + len(batch[0])
 	hss := make([][]uint64, len(batch))
