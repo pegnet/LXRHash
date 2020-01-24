@@ -4,7 +4,7 @@ package lxr
 
 import (
 	"bytes"
-	"crypto/rand"
+	crand "crypto/rand"
 	"encoding/binary"
 	"encoding/hex"
 	"math/rand"
@@ -113,6 +113,19 @@ func TestKnownHashes(t *testing.T) {
 		}
 	}
 
+	for k, v := range known {
+		val, _ := hex.DecodeString(v)
+
+		res := lx.HashWork([]byte(k), [][]byte{[]byte{}})
+		if len(res) != 1 {
+			t.Error("missing results")
+			t.FailNow()
+		}
+		if !bytes.Equal(res[0], val) {
+			t.Errorf("HashWork mismatch for %s. got = %s, want = %s", k, hex.EncodeToString(res[0]), v)
+		}
+	}
+
 }
 
 func TestLXRHash_Hash(t *testing.T) {
@@ -130,7 +143,7 @@ func TestBatch(t *testing.T) {
 	batch := make([][]byte, batchsize)
 	start := uint32(0)
 	static := make([]byte, 32)
-	rand.Read(static)
+	crand.Read(static)
 
 	for i := range batch {
 		batch[i] = make([]byte, 4)
@@ -145,9 +158,13 @@ func TestBatch(t *testing.T) {
 		// hash = results[i]
 		h := results[i]
 		h2 := lx.Hash(append(static, batch[i]...))
+		h3 := lx.FlatHash(append(static, batch[i]...))
 
 		if !bytes.Equal(h, h2) {
 			t.Errorf("not same, batch failed\n%x\n%x", h, h2)
+		}
+		if !bytes.Equal(h, h3) {
+			t.Errorf("not same, batch failed\n%x\n%x", h, h3)
 		}
 	}
 }
