@@ -39,8 +39,8 @@ func (lx LXRHash) HashWork(baseData []byte, batch [][]byte) [][]byte {
 	return lx.hashWork(baseData, batch, -1, 0)
 }
 
-// hashWork does a batch of hashes in paralell by doing each step of of the hash
-// across multiple nonces. This is opposed to running each nonce in it's
+// hashWork does a batch of hashes in parallel by doing each step of of the hash
+// across multiple nonces. This is opposed to running each nonce in its
 // entirety before starting the next one.
 //
 // The theory is there is a more efficient use of the cpu cache.
