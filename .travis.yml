@@ -1,0 +1,28 @@
+language: go
+
+# Use latest go version
+go:
+  - 1.x
+
+os:
+  - linux
+
+# Only run the unit tests in the top level directory.
+# The nested directory tests are much longer.
+script:
+  - ./.gofmt.sh
+  - go test -v *.go
+  # Reenable when we want to add coveralls
+  # - go test -covermode=count -coverprofile=profile.cov -v -timeout 45m ./...
+  # - goveralls -coverprofile=profile.cov -service=travis-ci
+
+# GO111MODULE will force Go modules
+# This will be unnecessary when Go 1.13 lands.
+# Also set the bit size to 10 so we can build the hashtable quick
+env:
+  - GO111MODULE=on LXRBITSIZE=10
+
+# No spam
+notifications:
+  email: false
+
