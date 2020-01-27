@@ -29,93 +29,172 @@ func AbortSettings(target uint64) (abortByte int, abortVal uint8) {
 	return -1, 0
 }
 
-// HashWorkAbort enables the use of the abort settings to abort a hash slightly
-// early.
-func (lx LXRHash) HashWorkAbort(baseData []byte, batch [][]byte, abortByte int, abortVal uint8) [][]byte {
-	return lx.hashWork(baseData, batch, abortByte, abortVal)
+type HashParallelItem struct {
+	src                     []byte
+	hs                      []uint64
+	as, s1, s2, s3, idx, v2 uint64
 }
 
-func (lx LXRHash) HashWork(baseData []byte, batch [][]byte) [][]byte {
-	return lx.hashWork(baseData, batch, -1, 0)
-}
+// HashParallel takes the arbitrary input and returns the resulting hash of length HashSize.
+// The batch must have at least one entry.
+// The base is prefixed to all items in the batch.
+func (lx LXRHash) HashParallel(base []byte, batch [][]byte) [][]byte {
+	var work []*HashParallelItem
+	for _, src := range batch {
+		work = append(work, &HashParallelItem{
+			src: src,
+			as:  lx.Seed,
+			hs:  make([]uint64, lx.HashSize),
+		})
+	}
 
-// hashWork does a batch of hashes in parallel by doing each step of of the hash
-// across multiple nonces. This is opposed to running each nonce in its
-// entirety before starting the next one.
-//
-// The theory is there is a more efficient use of the cpu cache.
-func (lx LXRHash) hashWork(baseData []byte, batch [][]byte, abortByte int, abortVal uint8) [][]byte {
-	fullL := len(baseData) + len(batch[0])
-	hss := make([][]uint64, len(batch))
-	ass := make([]uint64, len(batch))
-	s1s := make([]uint64, len(batch))
-	s2s := make([]uint64, len(batch))
-	s3s := make([]uint64, len(batch))
-	idxs := make([]uint64, len(batch))
 	mk := lx.MapSize - 1
 
-	for i := 0; i < len(batch); i++ {
-		hss[i] = make([]uint64, lx.HashSize)
-		ass[i] = lx.Seed
-	}
+	B := func(v uint64) uint64 { return uint64(lx.ByteMap[v&mk]) }
+	b := func(v uint64) byte { return byte(B(v)) }
 
-	base := func(b, idx int) byte {
-		if idx >= len(baseData) {
-			return batch[b][idx-len(baseData)]
+	source := func(work *HashParallelItem, i int) byte {
+		if i < len(base) {
+			return base[i]
 		}
-		return baseData[idx]
+		return work.src[i-len(base)]
 	}
 
+	faststep := func(work []*HashParallelItem, i int, idx uint64) {
+		for _, h := range work {
+			v2 := uint64(source(h, i))
+			b := B(h.as ^ v2)
+			h.as = h.as<<7 ^ h.as>>5 ^ v2<<20 ^ v2<<16 ^ v2 ^ b<<20 ^ b<<12 ^ b<<4
+			h.s1 = h.s1<<9 ^ h.s1>>3 ^ h.hs[idx]
+			h.hs[idx] = h.s1 ^ h.as
+			h.s1, h.s2, h.s3 = h.s3, h.s1, h.s2
+		}
+	}
+
+	step := func(work []*HashParallelItem, i int, idx uint64, reduce bool) {
+		for _, h := range work {
+			if reduce {
+				h.v2 = uint64(h.hs[i])
+			} else {
+				h.v2 = uint64(source(h, i))
+			}
+			h.s1 = h.s1<<9 ^ h.s1>>1 ^ h.as ^ B(h.as>>5^h.v2)<<3
+		}
+
+		for _, h := range work {
+			h.s1 = h.s1<<5 ^ h.s1>>3 ^ B(h.s1^h.v2)<<7
+		}
+		for _, h := range work {
+			h.s1 = h.s1<<7 ^ h.s1>>7 ^ B(h.as^h.s1>>7)<<5
+		}
+		for _, h := range work {
+			h.s1 = h.s1<<11 ^ h.s1>>5 ^ B(h.v2^h.as>>11^h.s1)<<27
+			h.hs[idx] = h.s1 ^ h.as ^ h.hs[idx]<<7 ^ h.hs[idx]>>13
+		}
+		for _, h := range work {
+			h.as = h.as<<17 ^ h.as>>5 ^ h.s1 ^ B(h.as^h.s1>>27^h.v2)<<3
+		}
+		for _, h := range work {
+			h.as = h.as<<13 ^ h.as>>3 ^ B(h.as^h.s1)<<7
+		}
+		for _, h := range work {
+			h.as = h.as<<15 ^ h.as>>7 ^ B(h.as>>7^h.s1)<<11
+		}
+		for _, h := range work {
+			h.as = h.as<<9 ^ h.as>>11 ^ B(h.v2^h.as^h.s1)<<3
+		}
+		for _, h := range work {
+			h.s1 = h.s1<<7 ^ h.s1>>27 ^ h.as ^ B(h.as>>3)<<13
+		}
+		for _, h := range work {
+			h.s1 = h.s1<<3 ^ h.s1>>13 ^ B(h.s1^h.v2)<<11
+		}
+		for _, h := range work {
+			h.s1 = h.s1<<8 ^ h.s1>>11 ^ B(h.as^h.s1>>11)<<9
+		}
+		for _, h := range work {
+			h.s1 = h.s1<<6 ^ h.s1>>9 ^ B(h.v2^h.as^h.s1)<<3
+		}
+		for _, h := range work {
+			h.as = h.as<<23 ^ h.as>>3 ^ h.s1 ^ B(h.as^h.v2^h.s1>>3)<<7
+		}
+		for _, h := range work {
+			h.as = h.as<<17 ^ h.as>>7 ^ B(h.as^h.s1>>3)<<5
+		}
+		for _, h := range work {
+			h.as = h.as<<13 ^ h.as>>5 ^ B(h.as>>5^h.s1)<<1
+		}
+		for _, h := range work {
+			h.as = h.as<<11 ^ h.as>>1 ^ B(h.v2^h.as^h.s1)<<7
+		}
+
+		for _, h := range work {
+			h.s1 = h.s1<<5 ^ h.s1>>3 ^ h.as ^ B(h.as>>7^h.s1>>3)<<6
+		}
+		for _, h := range work {
+			h.s1 = h.s1<<8 ^ h.s1>>6 ^ B(h.s1^h.v2)<<11
+		}
+		for _, h := range work {
+			h.s1 = h.s1<<11 ^ h.s1>>11 ^ B(h.as^h.s1>>11)<<5
+		}
+		for _, h := range work {
+			h.s1 = h.s1<<7 ^ h.s1>>5 ^ B(h.v2^h.as>>7^h.as^h.s1)<<17
+		}
+
+		for _, h := range work {
+			h.s2 = h.s2<<3 ^ h.s2>>17 ^ h.s1 ^ B(h.as^h.s2>>5^h.v2)<<13
+		}
+		for _, h := range work {
+			h.s2 = h.s2<<6 ^ h.s2>>13 ^ B(h.s2)<<11
+		}
+		for _, h := range work {
+			h.s2 = h.s2<<11 ^ h.s2>>11 ^ B(h.as^h.s1^h.s2>>11)<<23
+		}
+		for _, h := range work {
+			h.s2 = h.s2<<4 ^ h.s2>>23 ^ B(h.v2^h.as>>8^h.as^h.s2>>10)<<1
+			h.s1 = h.s2<<3 ^ h.s2>>1 ^ h.hs[idx] ^ h.v2
+		}
+		for _, h := range work {
+			h.as = h.as<<9 ^ h.as>>7 ^ h.s1>>1 ^ B(h.s2>>1^h.hs[idx])<<5
+			h.s1, h.s2, h.s3 = h.s3, h.s1, h.s2
+		}
+
+	}
+
+	idx := uint64(0)
 	// Fast spin to prevent caching state
-	for x := 0; x < fullL; x++ {
-		for i := 0; i < len(batch); i++ {
-			if idxs[i] >= lx.HashSize { // Use an if to avoid modulo math
-				idxs[i] = 0
-			}
-
-			ass[i], s1s[i], s2s[i], s3s[i] = lx.fastStepf(uint64(base(i, x)), ass[i], s1s[i], s2s[i], s3s[i], idxs[i], hss[i])
-			idxs[i]++
+	for i := 0; i < len(base)+len(work[0].src); i++ {
+		if idx >= lx.HashSize { // Use an if to avoid modulo math
+			idx = 0
 		}
+		faststep(work, i, idx)
+		idx++
 	}
 
-	idxs = make([]uint64, len(batch))
+	idx = 0
 	// Actual work to compute the hash
-	for x := 0; x < fullL; x++ {
-		for i := 0; i < len(batch); i++ {
-			if idxs[i] >= lx.HashSize { // Use an if to avoid modulo math
-				idxs[i] = 0
-			}
-			v2 := uint64(base(i, x))
-			ass[i], s1s[i], s2s[i], s3s[i] = lx.stepf(ass[i], s1s[i], s2s[i], s3s[i], v2, hss[i], idxs[i], mk)
-			idxs[i]++
+	for i := 0; i < len(base)+len(work[0].src); i++ {
+		if idx >= lx.HashSize { // Use an if to avoid modulo math
+			idx = 0
+		}
+		step(work, i, idx, false)
+		idx++
+	}
+
+	ret := make([][]byte, len(batch))
+	for i := range ret {
+		ret[i] = make([]byte, lx.HashSize)
+	}
+
+	for i := int64(lx.HashSize - 1); i >= 0; i-- {
+		step(work, int(i), uint64(i), true) // Step the hash functions and then
+		for j, h := range work {
+			ret[j][i] = b(h.as) ^ b(h.hs[i]) // Xor two resulting sequences
 		}
 	}
 
-	// Reduction pass
-	// Done by Interating over hs[] to produce the bytes[] hash
-	//
-	// At this point, we have HBits of state in hs.  We need to reduce them down to a byte,
-	// And we do so by doing a bit more bitwise math, and mapping the values through our byte map.
-
-	bytes := make([][]byte, len(batch))
-	for i := range bytes {
-		bytes[i] = make([]byte, lx.HashSize)
-	}
-	// Roll over all the hs (one int64 value for every byte in the resulting hash) and reduce them to byte values
-	for i := 0; i < len(batch); i++ { // Cycle through batches first on this one.
-		// Cycling through batches first allows for an early abort
-		for j := int(lx.HashSize) - 1; j >= 0; j-- {
-			ass[i], s1s[i], s2s[i], s3s[i] = lx.stepf(ass[i], s1s[i], s2s[i], s3s[i], uint64(hss[i][j]), hss[i], uint64(j), mk)
-			bytes[i][j] = lx.ByteMap[ass[i]&mk] ^ lx.ByteMap[uint64(hss[i][j])&mk] // Xor two resulting sequences
-			if j == abortByte && bytes[i][j] < abortVal {
-				break // Stop the rollover, who cares
-			} else if j < abortByte && bytes[i][j] != 0xFF {
-				break // Stop the rollover, who cares
-			}
-		}
-	}
-
-	return bytes
+	// Return the resulting hash
+	return ret
 }
 
 func (lx LXRHash) fastStepf(v2, as, s1, s2, s3, idx uint64, hs []uint64) (uint64, uint64, uint64, uint64) {

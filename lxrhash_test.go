@@ -61,7 +61,7 @@ func BenchmarkHash(b *testing.B) {
 		// included here. It might be better to make the batches on demand
 		// vs upfront.
 		for i := range batches {
-			lx.HashWork(oprhash, batches[i])
+			lx.HashParallel(oprhash, batches[i])
 		}
 	}
 
@@ -69,11 +69,11 @@ func BenchmarkHash(b *testing.B) {
 	// So mix them up a bit
 	b.Run("hash", normalHash)
 	b.Run("flat hash", flatHash)
-	b.Run("hashwork", batchHash)
+	b.Run("HashParallel", batchHash)
 
 	b.Run("hash again", normalHash)
 	b.Run("flat hash again", flatHash)
-	b.Run("hashwork again", batchHash)
+	b.Run("HashParallel again", batchHash)
 }
 
 func TestKnownHashes(t *testing.T) {
@@ -126,13 +126,26 @@ func TestKnownHashes(t *testing.T) {
 	for k, v := range known {
 		val, _ := hex.DecodeString(v)
 
-		res := lx.HashWork([]byte(k), [][]byte{[]byte{}})
+		res := lx.HashParallel([]byte(k), [][]byte{[]byte{}})
 		if len(res) != 1 {
 			t.Error("missing results")
 			t.FailNow()
 		}
 		if !bytes.Equal(res[0], val) {
-			t.Errorf("HashWork mismatch for %s. got = %s, want = %s", k, hex.EncodeToString(res[0]), v)
+			t.Errorf("HashParallel (zero-batch) mismatch for %s. got = %s, want = %s", k, hex.EncodeToString(res[0]), v)
+		}
+	}
+
+	for k, v := range known {
+		val, _ := hex.DecodeString(v)
+
+		res := lx.HashParallel([]byte{}, [][]byte{[]byte(k)})
+		if len(res) != 1 {
+			t.Error("missing results")
+			t.FailNow()
+		}
+		if !bytes.Equal(res[0], val) {
+			t.Errorf("HashParallel (zero-base) mismatch for %s. got = %s, want = %s", k, hex.EncodeToString(res[0]), v)
 		}
 	}
 
@@ -161,7 +174,7 @@ func TestBatch(t *testing.T) {
 		binary.BigEndian.PutUint32(batch[i], start+uint32(i))
 	}
 
-	results := lx.HashWork(static, batch)
+	results := lx.HashParallel(static, batch)
 	for i := range results {
 		// do something with the result here
 		// nonce = batch[i]
@@ -176,26 +189,6 @@ func TestBatch(t *testing.T) {
 		}
 		if !bytes.Equal(h, h3) {
 			t.Errorf("not same, batch failed\n%x\n%x", h, h3)
-		}
-	}
-
-	// Abort anything below this
-	setting := []byte{0xff, 0x24, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
-	b, v := AbortSettings(target(setting))
-	results = lx.HashWorkAbort(static, batch, b, v)
-	for i := range results {
-		// do something with the result here
-		// nonce = batch[i]
-		// input = append(base, batch[i]...)
-		// hash = results[i]
-		h := results[i]
-		h2 := lx.Hash(append(static, batch[i]...))
-
-		if h2[1] < setting[1] {
-			// first byte should be 00, as we should abort early
-			if h[0] != 0x00 {
-				t.Errorf("did not abort early: %x", h)
-			}
 		}
 	}
 }
