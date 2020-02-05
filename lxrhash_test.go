@@ -4,6 +4,7 @@ package lxr
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/hex"
 	"math/rand"
 	"testing"
@@ -18,7 +19,7 @@ func init() {
 }
 
 func BenchmarkHash(b *testing.B) {
-	b.Run("hash", func(b *testing.B) {
+	normalHash := func(b *testing.B) {
 		nonce := []byte{0, 0}
 		for i := 0; i < b.N; i++ {
 			nonce = nonce[:0]
@@ -28,19 +29,9 @@ func BenchmarkHash(b *testing.B) {
 			no := append(oprhash, nonce...)
 			lx.Hash(no)
 		}
-	})
-	b.Run("hash again", func(b *testing.B) {
-		nonce := []byte{0, 0}
-		for i := 0; i < b.N; i++ {
-			nonce = nonce[:0]
-			for j := i; j > 0; j = j >> 8 {
-				nonce = append(nonce, byte(j))
-			}
-			no := append(oprhash, nonce...)
-			lx.Hash(no)
-		}
-	})
-	b.Run("flat hash", func(b *testing.B) {
+	}
+
+	flatHash := func(b *testing.B) {
 		nonce := []byte{0, 0}
 		for i := 0; i < b.N; i++ {
 			nonce = nonce[:0]
@@ -50,18 +41,39 @@ func BenchmarkHash(b *testing.B) {
 			no := append(oprhash, nonce...)
 			lx.FlatHash(no)
 		}
-	})
-	b.Run("flat hash again", func(b *testing.B) {
-		nonce := []byte{0, 0}
-		for i := 0; i < b.N; i++ {
-			nonce = nonce[:0]
-			for j := i; j > 0; j = j >> 8 {
-				nonce = append(nonce, byte(j))
+	}
+
+	batchHash := func(b *testing.B) {
+		// Create sets based on b.N
+		batchsize := 128 // Feel free to tweak
+		sets := (b.N / batchsize) + 1
+		batches := make([][][]byte, sets)
+		for i := range batches {
+			batches[i] = make([][]byte, batchsize)
+			for j := range batches[i] {
+				batches[i][j] = make([]byte, 4)
+				binary.BigEndian.PutUint32(batches[i][j], uint32((i*batchsize)+j))
 			}
-			no := append(oprhash, nonce...)
-			lx.FlatHash(no)
 		}
-	})
+
+		// If you want to skip the setup, you can start the timer here.
+		// But the setup is included in the others, so it is also being
+		// included here. It might be better to make the batches on demand
+		// vs upfront.
+		for i := range batches {
+			lx.HashParallel(oprhash, batches[i])
+		}
+	}
+
+	// The last hashing function always runs faster for some reason.
+	// So mix them up a bit
+	b.Run("hash", normalHash)
+	b.Run("flat hash", flatHash)
+	b.Run("HashParallel", batchHash)
+
+	b.Run("hash again", normalHash)
+	b.Run("flat hash again", flatHash)
+	b.Run("HashParallel again", batchHash)
 }
 
 func TestKnownHashes(t *testing.T) {
@@ -111,6 +123,32 @@ func TestKnownHashes(t *testing.T) {
 		}
 	}
 
+	for k, v := range known {
+		val, _ := hex.DecodeString(v)
+
+		res := lx.HashParallel([]byte(k), [][]byte{[]byte{}})
+		if len(res) != 1 {
+			t.Error("missing results")
+			t.FailNow()
+		}
+		if !bytes.Equal(res[0], val) {
+			t.Errorf("HashParallel (zero-batch) mismatch for %s. got = %s, want = %s", k, hex.EncodeToString(res[0]), v)
+		}
+	}
+
+	for k, v := range known {
+		val, _ := hex.DecodeString(v)
+
+		res := lx.HashParallel([]byte{}, [][]byte{[]byte(k)})
+		if len(res) != 1 {
+			t.Error("missing results")
+			t.FailNow()
+		}
+		if !bytes.Equal(res[0], val) {
+			t.Errorf("HashParallel (zero-base) mismatch for %s. got = %s, want = %s", k, hex.EncodeToString(res[0]), v)
+		}
+	}
+
 }
 
 func TestLXRHash_Hash(t *testing.T) {
@@ -121,4 +159,47 @@ func TestLXRHash_Hash(t *testing.T) {
 			t.Errorf("mismatch hashes\n%x\n%x", h1, h2)
 		}
 	}
+}
+
+func TestBatch(t *testing.T) {
+	batchsize := 512
+	batch := make([][]byte, batchsize)
+	start := uint32(0)
+	static := make([]byte, 32)
+	rand.Seed(0) // I want this deterministic
+	rand.Read(static)
+
+	for i := range batch {
+		batch[i] = make([]byte, 4)
+		binary.BigEndian.PutUint32(batch[i], start+uint32(i))
+	}
+
+	results := lx.HashParallel(static, batch)
+	for i := range results {
+		// do something with the result here
+		// nonce = batch[i]
+		// input = append(base, batch[i]...)
+		// hash = results[i]
+		h := results[i]
+		h2 := lx.Hash(append(static, batch[i]...))
+		h3 := lx.FlatHash(append(static, batch[i]...))
+
+		if !bytes.Equal(h, h2) {
+			t.Errorf("not same, batch failed\n%x\n%x", h, h2)
+		}
+		if !bytes.Equal(h, h3) {
+			t.Errorf("not same, batch failed\n%x\n%x", h, h3)
+		}
+	}
+}
+
+func TestAbortSettings(t *testing.T) {
+	if b, v := AbortSettings(0xffac55c69ecabf4f); b != 1 || v != 0xac {
+		t.Errorf("unexpected")
+	}
+}
+
+func target(b []byte) uint64 {
+	return uint64(b[7]) | uint64(b[6])<<8 | uint64(b[5])<<16 | uint64(b[4])<<24 |
+		uint64(b[3])<<32 | uint64(b[2])<<40 | uint64(b[1])<<48 | uint64(b[0])<<56
 }
