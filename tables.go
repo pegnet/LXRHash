@@ -4,8 +4,10 @@ package lxr
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io/ioutil"
+	"path"
 	"os"
 	"os/user"
 	"time"
@@ -56,6 +58,23 @@ func (lx *LXRHash) Init(Seed, MapSizeBits, HashSize, Passes uint64) {
 
 }
 
+func (lx *LXRHash) InitWithPath(Seed, MapSizeBits, HashSize, Passes uint64, path string) (string, error) {
+	if MapSizeBits < 8 {
+		return "", errors.New(fmt.Sprintf("Bad Map Size in Bits.  Must be between 8 and 34 bits, was %d", MapSizeBits))
+	}
+
+	MapSize := uint64(1) << MapSizeBits
+	lx.MapSize = MapSize
+	lx.MapSizeBits = MapSizeBits
+	lx.Seed = Seed
+	lx.Passes = Passes
+	lxrhashtablepath, err := lx.ReadTableWithPath(path)
+	if err != nil {
+		return "", err
+	}
+	return lxrhashtablepath, nil
+}
+
 // ReadTable attempts to load the ByteMap from disk.
 // If that doesn't exist, a new one will be generated and saved.
 func (lx *LXRHash) ReadTable() {
@@ -86,6 +105,33 @@ func (lx *LXRHash) ReadTable() {
 		lx.ByteMap = dat
 	}
 	lx.Log(fmt.Sprintf("Finished Reading ByteMap Table. Total time taken: %s", time.Since(start)))
+}
+
+func (lx *LXRHash) ReadTableWithPath(tablepath string) (string, error) {
+	if tablepath != "" {
+		if _, err := os.Stat(tablepath); os.IsNotExist(err) {
+			return "", err
+		}
+	}
+	filename := fmt.Sprintf("lxrhash-seed-%x-passes-%d-size-%d.dat", lx.Seed, lx.Passes, lx.MapSizeBits)
+	filepath := path.Join(tablepath, filename)
+
+	// Try and load our byte map.
+	lx.Log(fmt.Sprintf("Reading ByteMap Table %s", filepath))
+
+	start := time.Now()
+	dat, err := ioutil.ReadFile(filename)
+	// If loading fails, or it is the wrong size, generate it.  Otherwise just use it.
+	if err != nil || len(dat) != int(lx.MapSize) {
+		lx.Log("Table not found, Generating ByteMap Table")
+		lx.GenerateTable()
+		lx.Log("Writing ByteMap Table ")
+		lx.WriteTable(filename)
+	} else {
+		lx.ByteMap = dat
+	}
+	lx.Log(fmt.Sprintf("Finished Reading ByteMap Table. Total time taken: %s", time.Since(start)))
+	return filepath, nil
 }
 
 // WriteTable caches the bytemap to disk so it only has to be generated once
