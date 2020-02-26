@@ -7,9 +7,9 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"path"
 	"os"
 	"os/user"
+	"path"
 	"time"
 )
 
