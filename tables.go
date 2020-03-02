@@ -85,6 +85,7 @@ func (lx *LXRHash) InitFromPath(Seed, MapSizeBits, HashSize, Passes uint64, Tabl
 	}
 
 	MapSize := uint64(1) << MapSizeBits
+	lx.HashSize = (HashSize + 7) / 8
 	lx.MapSize = MapSize
 	lx.MapSizeBits = MapSizeBits
 	lx.Seed = Seed
@@ -196,8 +197,7 @@ func (lx *LXRHash) readTableFromPath(tablepath string) (string, error) {
 }
 
 func (lx *LXRHash) writeTable(filename string) (result error) {
-	err := os.Remove(filename)
-	if err != nil {
+	if err := os.Remove(filename); err != nil && !os.IsNotExist(err) {
 		return err
 	}
 	// open output file
