@@ -50,17 +50,16 @@ func (lx *LXRHash) Init(Seed, MapSizeBits, HashSize, Passes uint64) {
 	if MapSizeBits < 8 {
 		panic(fmt.Sprintf("Bad Map Size in Bits.  Must be between 8 and 34 bits, was %d", MapSizeBits))
 	}
-	TablePath, err := GetUserTablePath()
+	tablePath, err := GetUserTablePath()
 	if err != nil {
 		panic(err)
 	}
 	// lx.readTableFromPath does not make directories.
-	err = os.MkdirAll(TablePath, os.ModePerm)
+	err = os.MkdirAll(tablePath, os.ModePerm)
 	if err != nil {
-		panic(fmt.Sprintf("Could not create the directory %s", TablePath))
+		panic(fmt.Sprintf("Could not create the directory %s", tablePath))
 	}
-	_, err = lx.InitFromPath(Seed, MapSizeBits, HashSize, Passes, TablePath)
-	if err != nil {
+	if _, err = lx.InitFromPath(Seed, MapSizeBits, HashSize, Passes, tablePath); err != nil {
 		panic(err)
 	}
 }
@@ -116,8 +115,7 @@ func (lx *LXRHash) ReadTable() {
 
 // WriteTable caches the bytemap to disk so it only has to be generated once
 func (lx *LXRHash) WriteTable(filename string) {
-	err := lx.writeTable(filename)
-	if err != nil {
+	if err := lx.writeTable(filename); err != nil {
 		panic(err)
 	}
 }
