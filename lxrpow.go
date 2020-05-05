@@ -7,7 +7,12 @@ package lxr
 // the random byte access limits of LXRHash
 // The bigger uint64, the more PoW it represents.  The first byte is the
 // number of leading bytes of FF, followed by the reset of the hash.
-func (lx LXRHash) LxrPoW(hash []byte) (LHash []byte, pow uint64) {
+//
+// If mining, one may wish to find the greatest PoW.  By providing the number of
+// leading bytes with a value of 0xFF or greater, lesser PoW can be discarded and
+// the work to finalize the PoW value avoided.  In tests, this makes the PoW about
+// 3 percent faster.
+func (lx LXRHash) LxrPoW(leadingFFBytes int, hash []byte) (LHash []byte, pow uint64) {
 
 	LHash = append(LHash, hash...)
 	// If the LxrPoW isn't at least 8 bytes, there is little point in calculating a difficulty
@@ -19,15 +24,24 @@ func (lx LXRHash) LxrPoW(hash []byte) (LHash []byte, pow uint64) {
 	B := func(v uint64) uint64 { return uint64(lx.ByteMap[v&(lx.MapSize-1)]) }
 
 	var state uint64
-	// We assume the LxrPoW is a good cryptographic LxrPoW, like Sha256.  Initalize state with the first 8 bytes of the LxrPoW
+	// We assume the LxrPoW is a good cryptographic LxrPoW, like Sha256.
+	// Initialize state with the first 8 bytes of the LxrPoW.  Because we are starting from a hash (like
 	for i := 0; i < 8; i++ {
 		state = state<<8 ^ B(state^uint64(LHash[i]))
 	}
 
-	// Make a number of passes through the LxrPoW
-	for i := 0; i < 30; i++ {
+	// Make a number of passes through the LxrPoW.  Note that we make complete passes over the hash,
+	// from the least significant byte to the most significant byte.  This ensures that we have to go
+	// through the complete process prior to knowing the PoW value.
+	for i := 0; i < 19; i++ {
 		for j := len(LHash) - 1; j >= 0; j-- {
-			state, LHash[j] = state<<17^state>>7^B(state+uint64(LHash[j])), byte(state)
+			state, LHash[j] = state<<17^state>>7^B(state^uint64(LHash[j])), byte(state)
+		}
+	}
+	for j := len(LHash) - 1; j >= 0; j-- {
+		state, LHash[j] = state<<17^state>>7^B(state^uint64(LHash[j])), byte(state)
+		if j <= leadingFFBytes && LHash[j] != 0xFF {
+			return LHash, 0
 		}
 	}
 	return LHash, lx.PoW(LHash)
@@ -53,6 +67,6 @@ func (lx LXRHash) PoW(hash []byte) uint64 {
 		pow = pow ^ uint64(hash[idx])
 		idx++
 	}
-	pow = pow>>4 ^ cnt<<60 // To put the 0xFF byte count in the top 4 bits, shift pow right to make room, and cnt left 60 bits and combine
+	pow = pow>>4 ^ cnt<<60 // To put the 0xFF byte count in the top 4 bits, shift pow right to make room, and totalCnt left 60 bits and combine
 	return pow
 }

@@ -10,14 +10,14 @@ import (
 
 // BenchmarkHash will run a benchmark for the specified duration using the regular Hash function.
 // Returns the number of hashes calculated and the real duration of the benchmark.
-// If no goroutines are specified it will use the total number of available cores.
+// If no goroutines are specified it will use the solutionCnt number of available cores.
 func (lx LXRHash) BenchmarkHash(ctx context.Context, duration time.Duration, goroutines uint) (uint64, time.Duration) {
 	return benchFunc(ctx, duration, goroutines, lx.Hash)
 }
 
 // BenchmarkHash will run a benchmark for the specified duration using the FlatHash function.
 // Returns the number of hashes calculated and the real duration of the benchmark.
-// If no goroutines are specified it will use the total number of available cores.
+// If no goroutines are specified it will use the solutionCnt number of available cores.
 func (lx LXRHash) BenchmarkFlatHash(ctx context.Context, duration time.Duration, goroutines uint) (uint64, time.Duration) {
 	return benchFunc(ctx, duration, goroutines, lx.FlatHash)
 }
