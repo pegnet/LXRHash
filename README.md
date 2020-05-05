@@ -45,6 +45,43 @@ While this hash may be reasonable for use as PoW in mining on an immutable ledge
 not nearly enough testing has been done to use as a fundamental part in cryptography or security.  For fun, it 
 would be cool to do such testing.
 
+## LXRPoW
+After having deployed the LXRHash in the PegNet, a few optimizations became apparent in the way LXRHash is computed, leading to 
+some much more complex code.  The other observation is that LXRHash is pretty slow by design (to make PoW CPU bound), but 
+quite a number of use cases don't need PoW, but really just need to validate data matches the hash.  So using LXRHash as
+a hashing function isn't as desirable as simply using it as a PoW function.
+
+The someone obvious conclusion is that in fact we can use Sha256 as the hash function for applications, and only use
+the LXR approach as a PoW measure.  So in this case, what we do is change how we compute the PoW of a hash. So instead 
+of simply looking at the high order bits and saying that the greater the value the greater the difficulty (or the lower
+the value the lower the difficulty) we instead define an expensive function to calculate the PoW.
+
+### Representing PoW as a nice standard sized value
+Now that we are using a function to compute the PoW, we can also easily standardize the size of the difficulty.  Since
+bytes that are all 0xFF or all 0x00 are pretty much wasted, we can simply count them and combine that count with the 
+following bytes. This encoding is compact and easily compared to other difficulties in a standard size with plenty 
+of resolution.  So with PoW represented as a large number, the bigger the more difficult, the following rules are 
+followed.  Where bit 0 is most significant, and bit 63 is least significant:
+
+* Bits 0-3 Count of leading 0xFF bytes
+* Bits 4-63 bits of the following bytes
+
+For example, given the hash: ffffff7312334c442bf42625f7856fe0d50e4aa45c98d7a391c016b89e242d94
+the difficulty is 37312334c442bf42
+
+The computation counts the leadding bytes with a value of 0xFF, then calculates the uint64 value of the next 8 bytes.
+The count is combined with the following bytes by shifting the 8 bytes right by 4, and adding the count shifted left by 60
+
+As computing power grows, more significant bits of the hash can be used to represent the difficulty.  At a minimum, 
+difficulty is represented by 4 bits 0x0  plus the following 0 + 60 bits => 60 bits of accuracy.  At the maximum, difficulty 
+is represented by 4 bits 0xF plus the following 60 bits => 120 + 60 = 180 bits of accuracy.
+
+### Advantages
+Sha256 is very well tested as a cryptographic function, with excellent waterfall properties (meaning odds are very close
+to 50% that any change in the input will flit any particular bit in the resulting hash).  Hashing the data being mined 
+by the miners is pretty fast.  If an application chooses to use a different hashing function, that's okay as well.
+
+
 ## Testing
 To run the LXRHash benchmark test:
 ```shell
