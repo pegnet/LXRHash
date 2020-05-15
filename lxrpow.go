@@ -38,9 +38,13 @@ func (lx LXRHash) LxrPoW(leadingFFBytes int, hash []byte) (LHash []byte, pow uin
 			state, LHash[j] = state<<17^state>>7^B(state^uint64(LHash[j])), byte(state)
 		}
 	}
+	// This is the last pass.  If we don't have 0xFF's for at least LeadingFFBytes, then we can just
+	// quit and return 0 (no difficulty) for this hash.  Because it didn't make the bar.  By design,
+	// we have to go through all the other passes, because we have no way of knowing what the leading
+	// bytes are going to be until we get to them.
 	for j := len(LHash) - 1; j >= 0; j-- {
 		state, LHash[j] = state<<17^state>>7^B(state^uint64(LHash[j])), byte(state)
-		if j <= leadingFFBytes && LHash[j] != 0xFF {
+		if j <= leadingFFBytes && LHash[j] != 0xFF { // One of the leading bytes isn't 0xFF!  Stop everything and quit
 			return LHash, 0
 		}
 	}
@@ -67,6 +71,6 @@ func (lx LXRHash) PoW(hash []byte) uint64 {
 		pow = pow ^ uint64(hash[idx])
 		idx++
 	}
-	pow = pow>>4 ^ cnt<<60 // To put the 0xFF byte count in the top 4 bits, shift pow right to make room, and totalCnt left 60 bits and combine
+	pow = pow>>4 ^ cnt<<60 // Shift the PoW right to make room, and xor in the count into top 4 bits
 	return pow
 }

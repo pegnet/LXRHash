@@ -11,7 +11,7 @@ import (
 
 var Found chan solution
 
-const LxrPoW_time int64 = 1200
+const LxrPoW_time int64 = 120
 
 type solution struct {
 	time        time.Time // Time the solution was found
@@ -64,7 +64,7 @@ func TstHash(comment string, lxrPoW bool) {
 		}
 
 		if i&0xFF == 0 { // Because checking the clock is expensive, just do it every 255 hashes
-			if time.Now().Unix()-start.Unix() > 60 { // If 60 seconds have passed, then start a new block
+			if time.Now().Unix()-start.Unix() > 600 { // If 600 seconds have passed, then start a new block
 				start = time.Now() // reset our timer
 
 				// End the block, start another.
