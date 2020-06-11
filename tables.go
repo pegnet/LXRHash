@@ -8,6 +8,8 @@ import (
 	"io/ioutil"
 	"os"
 	"os/user"
+	"path"
+	"path/filepath"
 	"time"
 )
 
@@ -41,83 +43,57 @@ func (lx *LXRHash) Log(msg string) {
 // MapSizeBits is the number of bits to use for the MapSize, i.e. 10 = mapsize of 1024
 // HashSize is the number of bits in the hash; truncated to a byte bountry
 // Passes is the number of shuffles of the ByteMap performed.  Each pass shuffles all byte values in the map
+//
+// Panics when MapSizeBits is < 8 and on other error conditions
 func (lx *LXRHash) Init(Seed, MapSizeBits, HashSize, Passes uint64) {
-	if MapSizeBits < 8 {
-		panic(fmt.Sprintf("Bad Map Size in Bits.  Must be between 8 and 34 bits, was %d", MapSizeBits))
+	tablePath, err := GetUserTablePath()
+	if err != nil {
+		panic(err)
 	}
+	if _, err = lx.initFromPath(Seed, MapSizeBits, HashSize, Passes, tablePath); err != nil {
+		panic(err)
+	}
+}
 
-	MapSize := uint64(1) << MapSizeBits
-	lx.HashSize = (HashSize + 7) / 8
-	lx.MapSize = MapSize
-	lx.MapSizeBits = MapSizeBits
-	lx.Seed = Seed
-	lx.Passes = Passes
-	lx.ReadTable()
-
+// Initialize the hash with the given values, reading the hash table from the specified path
+//
+// Seed - a 64-bit starting value
+// MapSizeBits - size of the map as an exponent of 2, i.e., 10 -> map size of 2 ^ 10 = 1024; between 8 and 34 bits inclusive.
+// HashSize - number of bits in the hash, truncated to a byte boundary
+// Passes - number of shuffles of the ByteMap
+// TablePath - the file system path of the directory which holds hash table files
+//
+// Because hash table files can be large, sharing them between applications is desirable.  Suggested shared hash table paths:
+//   Windows: %ProgramData%/LXRHash
+//   macOS:   /Library/Application\ Support/org.pegnet.LXRHash
+//   Linux:   /var/lib/LXRHash
+//   BSD:     /var/db/LXRHash
+//
+func (lx *LXRHash) InitFromPath(Seed, MapSizeBits, HashSize, Passes uint64, TablePath string) (string, error) {
+	if _, err := os.Stat(TablePath); err != nil {
+		return "", err
+	}
+	return lx.initFromPath(Seed, MapSizeBits, HashSize, Passes, TablePath)
 }
 
 // ReadTable attempts to load the ByteMap from disk.
 // If that doesn't exist, a new one will be generated and saved.
 func (lx *LXRHash) ReadTable() {
-	u, err := user.Current()
+	lxrHashPath, err := GetUserTablePath()
 	if err != nil {
 		panic(err)
 	}
-	userPath := u.HomeDir
-	lxrhashPath := userPath + "/.lxrhash"
-	err = os.MkdirAll(lxrhashPath, os.ModePerm)
-	if err != nil {
-		panic(fmt.Sprintf("Could not create the directory %s", lxrhashPath))
+	if err = os.MkdirAll(lxrHashPath, os.ModePerm); err != nil {
+		panic(fmt.Sprintf("Could not create the directory %s", lxrHashPath))
 	}
-
-	filename := fmt.Sprintf(lxrhashPath+"/lxrhash-seed-%x-passes-%d-size-%d.dat", lx.Seed, lx.Passes, lx.MapSizeBits)
-	// Try and load our byte map.
-	lx.Log(fmt.Sprintf("Reading ByteMap Table %s", filename))
-
-	start := time.Now()
-	dat, err := ioutil.ReadFile(filename)
-	// If loading fails, or it is the wrong size, generate it.  Otherwise just use it.
-	if err != nil || len(dat) != int(lx.MapSize) {
-		lx.Log("Table not found, Generating ByteMap Table")
-		lx.GenerateTable()
-		lx.Log("Writing ByteMap Table ")
-		lx.WriteTable(filename)
-	} else {
-		lx.ByteMap = dat
+	if _, err = lx.readTableFromPath(lxrHashPath); err != nil {
+		panic(err)
 	}
-	lx.Log(fmt.Sprintf("Finished Reading ByteMap Table. Total time taken: %s", time.Since(start)))
 }
 
 // WriteTable caches the bytemap to disk so it only has to be generated once
 func (lx *LXRHash) WriteTable(filename string) {
-	os.Remove(filename)
-
-	// open output file
-	fo, err := os.Create(filename)
-	if err != nil {
-		panic(err)
-	}
-	// close fo on exit and check for its returned error
-	defer func() {
-		if err := fo.Close(); err != nil {
-			panic(err)
-		}
-	}()
-
-	// write a chunk
-	w := bufio.NewWriter(fo)
-	bufSize := 4096 // 4KiB
-	for i := 0; i < len(lx.ByteMap); i += bufSize {
-		j := i + bufSize
-		if j > len(lx.ByteMap) {
-			j = len(lx.ByteMap)
-		}
-		if nn, err := w.Write(lx.ByteMap[i:j]); err != nil {
-			panic(fmt.Sprintf("error writing bytemap to disk: %d bytes written, %v", nn, err))
-		}
-	}
-	err = w.Flush()
-	if err != nil {
+	if err := lx.writeTable(filename); err != nil {
 		panic(err)
 	}
 }
@@ -166,4 +142,92 @@ func (lx *LXRHash) GenerateTable() {
 		}
 		lx.Log(fmt.Sprintf(" Index %10d Meg of %10d Meg -- Pass is %5.1f%% Complete", len(lx.ByteMap)/1024000, len(lx.ByteMap)/1024000, float64(100)))
 	}
+}
+
+func (lx *LXRHash) initFromPath(Seed, MapSizeBits, HashSize, Passes uint64, TablePath string) (string, error) {
+	if MapSizeBits < 8 {
+		return "", fmt.Errorf("Bad Map Size in Bits.  Must be between 8 and 34 bits, was %d", MapSizeBits)
+	}
+
+	MapSize := uint64(1) << MapSizeBits
+	lx.HashSize = (HashSize + 7) / 8
+	lx.MapSize = MapSize
+	lx.MapSizeBits = MapSizeBits
+	lx.Seed = Seed
+	lx.Passes = Passes
+	lxrhashtablepath, err := lx.readTableFromPath(TablePath)
+	if err != nil {
+		return "", err
+	}
+	return lxrhashtablepath, nil
+}
+
+func (lx *LXRHash) readTableFromPath(tablepath string) (string, error) {
+	filename := fmt.Sprintf("lxrhash-seed-%x-passes-%d-size-%d.dat", lx.Seed, lx.Passes, lx.MapSizeBits)
+	filepath := path.Join(tablepath, filename)
+
+	// Try and load our byte map.
+	lx.Log(fmt.Sprintf("Reading ByteMap Table %s", filepath))
+
+	start := time.Now()
+	dat, err := ioutil.ReadFile(filepath)
+	// If loading fails, or it is the wrong size, generate it.  Otherwise just use it.
+	if err != nil || len(dat) != int(lx.MapSize) {
+		lx.Log("Table not found, Generating ByteMap Table")
+		lx.GenerateTable()
+		lx.Log("Writing ByteMap Table ")
+		if err := lx.writeTable(filepath); err != nil {
+			return "", err
+		}
+	} else {
+		lx.ByteMap = dat
+	}
+	lx.Log(fmt.Sprintf("Finished Reading ByteMap Table. Total time taken: %s", time.Since(start)))
+	return filepath, nil
+}
+
+func (lx *LXRHash) writeTable(filepath string) (result error) {
+	tablePath := path.Dir(filepath)
+	if err := os.MkdirAll(tablePath, os.ModePerm); err != nil {
+		return fmt.Errorf("Could not create the directory %s", tablePath)
+	}
+	if err := os.Remove(filepath); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	// open output file
+	fo, err := os.Create(filepath)
+	if err != nil {
+		return err
+	}
+
+	// close fo on exit and check for its returned error
+	defer func() {
+		if err := fo.Close(); err != nil {
+			result = err
+		}
+	}()
+
+	// write a chunk
+	w := bufio.NewWriter(fo)
+	bufSize := 4096 // 4KiB
+	for i := 0; i < len(lx.ByteMap); i += bufSize {
+		j := i + bufSize
+		if j > len(lx.ByteMap) {
+			j = len(lx.ByteMap)
+		}
+		if nn, err := w.Write(lx.ByteMap[i:j]); err != nil {
+			return fmt.Errorf("error writing bytemap to disk: %d bytes written, %v", nn, err)
+		}
+	}
+	err = w.Flush()
+	return err
+}
+
+func GetUserTablePath() (string, error) {
+	u, err := user.Current()
+	if err != nil {
+		return "", err
+	}
+	userTablePath := filepath.Join(u.HomeDir, ".lxrhash")
+	return userTablePath, nil
 }
