@@ -51,10 +51,13 @@ some much more complex code.  The other observation is that LXRHash is pretty sl
 quite a number of use cases don't need PoW, but really just need to validate data matches the hash.  So using LXRHash as
 a hashing function isn't as desirable as simply using it as a PoW function.
 
-The someone obvious conclusion is that in fact we can use Sha256 as the hash function for applications, and only use
+The somewhat obvious conclusion is that in fact we can use Sha256 as the hash function for applications, and only use
 the LXR approach as a PoW measure.  So in this case, what we do is change how we compute the PoW of a hash. So instead 
 of simply looking at the high order bits and saying that the greater the value the greater the difficulty (or the lower
 the value the lower the difficulty) we instead define an expensive function to calculate the PoW.
+
+### Breaking out PoW measures from cryptographic hashes 
+The advantage here is that what exactly it means to weigh PoW between miners can be determined apart from the hash that secures a blockchain.  Also, a good cryptographic hash provides a much better base from which to randomize PoW even if we are going to use a 1 GB byte map to bound performance by DRAM access.  And we could also use past mining, reputation, staking, or other factors to add to PoW at this point.
 
 ### Representing PoW as a nice standard sized value
 Now that we are using a function to compute the PoW, we can also easily standardize the size of the difficulty.  Since
