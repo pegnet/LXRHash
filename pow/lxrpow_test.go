@@ -47,10 +47,17 @@ func Test_LxrPoW(t *testing.T) {
 		if r.pow > best.pow {
 			i++
 			best = r
-			current := float64(time.Now().UnixNano() - start.UnixNano() + 1)
-			rate := float64(hashCnt) / current *1000000000
-			fmt.Printf("%3d seconds: %14.5f TH: %10d H/s: %12.5f Pow: %016x Hash: %64x Nonce: %016x\n",
-				i, current/1000, hashCnt, rate, best.pow, oprHash, best.nonce)
+			current := time.Since(start)
+			rate := float64(hashCnt) / float64(current.Nanoseconds()) * 1000000000
+			fmt.Printf("  %3d time: %10s TH: %10d H/s: %12.5f Pow: %016x Hash: %64x Nonce: %016x\n",
+				i, fmt.Sprintf("%3d:%02d:%02d", int(current.Hours()), int(current.Minutes())%60, int(current.Seconds())%60),
+				hashCnt, rate, r.pow, oprHash, r.nonce)
+		} else if r.pow > 0x02f0<<48 {
+			current := time.Since(start)
+			rate := float64(hashCnt) / float64(current.Nanoseconds()) * 1000000000
+			fmt.Printf("      time: %10s TH: %10d H/s: %12.5f Pow: %016x\n",
+				fmt.Sprintf("%3d:%02d:%02d", int(current.Hours()), int(current.Minutes())%60, int(current.Seconds())%60),
+				hashCnt, rate, r.pow)
 		}
 	}
 }

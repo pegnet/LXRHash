@@ -1,7 +1,9 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 package pow
 
-import "crypto/sha256"
+import (
+	"crypto/sha256"
+)
 
 type LxrPow struct {
 	ByteMap []byte // Integer Offsets
@@ -15,7 +17,6 @@ type LxrPow struct {
 //
 // The bigger uint64, the more PoW it represents.  The first byte is the
 // number of leading bytes of FF, followed by the leading "non FF" bytes of the pow.
-//
 func (lx LxrPow) LxrPoW(hash []byte, nonce uint64) (ffCnt, pow uint64) {
 	mask := lx.MapSize - 1
 
@@ -23,9 +24,9 @@ func (lx LxrPow) LxrPoW(hash []byte, nonce uint64) (ffCnt, pow uint64) {
 		byte(nonce), byte(nonce>>8), byte(nonce>>16), byte(nonce>>24),
 		byte(nonce>>32), byte(nonce>>40), byte(nonce>>48), byte(nonce>>56))
 	LHash = append(LHash, hash...)
-	lHash := sha256.Sum256(LHash)	
+	lHash := sha256.Sum256(LHash)
 	LHash = lHash[:]
-	
+
 	var state uint64
 	// We assume the hash provided is from a good cryptographic hash function, something like Sha256.
 	// Initialize state with the first 8 bytes of the given hash.

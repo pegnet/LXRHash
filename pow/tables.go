@@ -5,7 +5,6 @@ package pow
 import (
 	"bufio"
 	"fmt"
-	"io/ioutil"
 	"math"
 	"os"
 	"os/user"
@@ -49,7 +48,7 @@ func (lx *LxrPow) ReadTable() {
 	fmt.Printf("Reading ByteMap Table %s\n", filename)
 
 	start := time.Now()
-	dat, err := ioutil.ReadFile(filename)
+	dat, err := os.ReadFile(filename)
 	// If loading fails, or it is the wrong size, generate it.  Otherwise just use it.
 	if err != nil || len(dat) != int(lx.MapSize) {
 		fmt.Println("Table not found, Generating ByteMap Table")
@@ -62,7 +61,7 @@ func (lx *LxrPow) ReadTable() {
 	fmt.Printf("Finished Reading ByteMap Table. Total time taken: %s\n", time.Since(start))
 }
 
-// WriteTable caches the bytemap to disk so it only has to be generated once
+// WriteTable caches the byteMap to disk so it only has to be generated once
 func (lx *LxrPow) WriteTable(filename string) {
 	os.Remove(filename)
 
@@ -111,7 +110,7 @@ func (lx *LxrPow) GenerateTable() {
 		return int64(uint64(offset) & MapMask)
 	}
 
-	// Fill the ByteMap with bytes ranging from 0 to 255.  As long as Mapsize%256 == 0, this
+	// Fill the ByteMap with bytes ranging from 0 to 255.  As long as MapSize%256 == 0, this
 	// looping and masking works just fine.
 	fmt.Println("Initializing the Table")
 	for i := range lx.ByteMap {
@@ -124,7 +123,7 @@ func (lx *LxrPow) GenerateTable() {
 	fmt.Println("Shuffling the Table")
 	period := time.Now().Unix()
 	for loops := 0; loops < int(lx.Passes); loops++ {
-		fmt.Printf(fmt.Sprintf("Pass %d\n", loops))
+		fmt.Printf("Pass %d\n", loops)
 		for i := range lx.ByteMap {
 			if (i+1)%1000 == 0 && time.Now().Unix()-period > 10 {
 				fmt.Printf(" Index %10d Meg of %10d Meg -- Pass is %5.1f%% Complete\r",

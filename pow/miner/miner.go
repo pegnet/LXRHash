@@ -1,8 +1,6 @@
 package main
 
-import (
-	"github.com/pegnet/LXRHash/pow"
-)
+import "github.com/LXRPow/pow"
 
 func main() {
 	for i := uint64(8); i < 31; i++ {
